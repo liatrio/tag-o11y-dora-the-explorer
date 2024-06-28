@@ -4,6 +4,7 @@
 # TODO: update this
 before:
   hooks:
+    - make install-tools
     - go generate ./...
 builds:
   - dir: ./
