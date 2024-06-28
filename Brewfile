@@ -1,0 +1,2 @@
+brew "make"
+brew "go"

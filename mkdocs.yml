@@ -1,0 +1,9 @@
+site_name: tag-o11y-dora-the-explorer
+
+nav:
+  - Home: index.md
+  - Components:
+    - Example: components/component.md
+
+plugins:
+  - techdocs-core

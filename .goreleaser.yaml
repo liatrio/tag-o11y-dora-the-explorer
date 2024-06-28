@@ -1,0 +1,104 @@
+---
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+# TODO: update this
+before:
+  hooks:
+    - go generate ./...
+builds:
+  - dir: ./
+    binary: dora-the-explorer
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - '386'
+      - amd64
+      - arm64
+      - arm
+    ignore:
+      - goos: darwin
+        goarch: '386'
+      - goos: darwin
+        goarch: arm
+      - goos: windows
+        goarch: arm
+      - goos: windows
+        goarch: arm64
+
+dockers:
+  - goos: linux
+    goarch: '386'
+    image_templates:
+      - ghcr.io/liatrio/tag-o11y-dora-the-explorer:{{ .Version }}-386
+      - ghcr.io/liatrio/tag-o11y-dora-the-explorer:latest-386
+    use: buildx
+    build_flag_templates:
+      - --pull
+      - --platform=linux/386
+      - --label=org.opencontainers.image.created={{.Date}}
+      - --label=org.opencontainers.image.name={{.ProjectName}}
+      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --label=org.opencontainers.image.source={{.GitURL}}
+  - goos: linux
+    goarch: amd64
+    image_templates:
+      - ghcr.io/liatrio/tag-o11y-dora-the-explorer:{{ .Version }}-amd64
+      - ghcr.io/liatrio/tag-o11y-dora-the-explorer:latest-amd64
+    use: buildx
+    build_flag_templates:
+      - --pull
+      - --platform=linux/amd64
+      - --label=org.opencontainers.image.created={{.Date}}
+      - --label=org.opencontainers.image.name={{.ProjectName}}
+      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --label=org.opencontainers.image.source={{.GitURL}}
+  - goos: linux
+    goarch: arm64
+    image_templates:
+      - ghcr.io/liatrio/tag-o11y-dora-the-explorer:{{ .Version }}-arm64
+      - ghcr.io/liatrio/tag-o11y-dora-the-explorer:latest-arm64
+    use: buildx
+    build_flag_templates:
+      - --pull
+      - --platform=linux/arm64
+      - --label=org.opencontainers.image.created={{.Date}}
+      - --label=org.opencontainers.image.name={{.ProjectName}}
+      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --label=org.opencontainers.image.source={{.GitURL}}
+
+archives:
+  - format: tar.gz
+    # this name template makes the OS and Arch compatible with the results of uname.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+     # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        format: zip
+checksum:
+  name_template: checksums.txt
+snapshot:
+  name_template: '{{ incpatch .Version }}-next'
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+# The lines beneath this are called `modelines`. See `:help modeline`
+# Feel free to remove those if you don't want/use them.
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj

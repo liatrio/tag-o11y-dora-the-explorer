@@ -1,0 +1,13 @@
+{
+  "version": "0.1.0",
+  "configurations": [
+    {
+      "name": "Launch Go App in Debug",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${fileDirname}",
+      "args": []
+    }
+  ]
+}
