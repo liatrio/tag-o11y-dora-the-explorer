@@ -27,3 +27,10 @@ build/
 
 # Brew
 Brewfile.lock.json
+
+# Environment
+.env
+
+# VSCode
+.vscode/settings.json
+

@@ -1,8 +1,11 @@
+-include .env
+export
 include ./Makefile.Common
 
 BUILD_DIR ?= $(SRC_ROOT)/build
 OS := $(shell uname | tr '[:upper:]' '[:lower:]')
 ARCH := $(shell uname -m)
+GENQLIENT := $(TOOLS_BIN_DIR)/genqlient
 
 CHECKS = generate lint test tidy fmt
 
@@ -46,3 +49,7 @@ checks: install-tools
 	else \
 		echo "completed successfully."; \
 	fi
+
+.PHONY: run
+run: build
+	$(BUILD_DIR)/dora-the-explorer
