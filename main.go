@@ -82,7 +82,7 @@ func prepare() (*GitHubRepoContext, error) {
 	var err error
 	ghrc.remoteRepoUrl, err = ghrc.CalculateRepoUrl()
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Error calculating repo URL: %s", err))
+		return nil, fmt.Errorf("Error calculating repo URL: %s", err)
 	}
 
 	return ghrc, nil
