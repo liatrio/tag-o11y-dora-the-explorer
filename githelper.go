@@ -15,12 +15,30 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	hclPath      = "envs/dev/terragrunt.hcl"
+	reExpression = `(github\.com/liatrio/dora-lambda-tf-module-demo\?ref=)v0.6.2`
+)
+
+func NeedsDowngrade(dir string) (bool, error) {
+	f := filepath.Join(dir, hclPath)
+	bb, err := os.ReadFile(f)
+	if err != nil {
+		logger.Sugar().Errorf("Error reading file: %s", err)
+		return false, err
+	}
+
+	re := regexp.MustCompile(reExpression)
+	return re.Match(bb), nil
+}
+
 func GenerateDowngradeRemoteBranch(
 	dir string,
 	repo *git.Repository,
 	ghrc *GitHubRepoContext,
 	logger *zap.Logger) (string, error) {
 
+	// Create a new branch
 	worktree, err := repo.Worktree()
 	if err != nil {
 		logger.Sugar().Errorf("Error getting worktree: %s", err)
@@ -41,14 +59,14 @@ func GenerateDowngradeRemoteBranch(
 	}
 
 	// Make changes (if any)
-	f := filepath.Join(dir, "envs/dev/terragrunt.hcl")
+	f := filepath.Join(dir, hclPath)
 	bb, err := os.ReadFile(f)
 	if err != nil {
 		logger.Sugar().Errorf("Error reading file: %s", err)
 		return "", err
 	}
 
-	re := regexp.MustCompile(`(github\.com.*)v0.6.2`)
+	re := regexp.MustCompile(reExpression)
 	updatedContent := re.ReplaceAll(bb, []byte("${1}v0.3.0"))
 	err = os.WriteFile(f, updatedContent, 0600)
 	if err != nil {
