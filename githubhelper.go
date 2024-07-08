@@ -19,7 +19,6 @@ func (t *authedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 type GitHubRepoContext struct {
 	gitHubDomain  string
-	graphqlUrl    string
 	pat           string
 	client        graphql.Client
 	name          string

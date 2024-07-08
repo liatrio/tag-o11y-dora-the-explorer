@@ -142,6 +142,10 @@ func main() {
 	}
 
 	repoId, err := getRepoId(ctx, ghrc.client, ghrc.org, ghrc.name)
+	if err != nil {
+		logger.Sugar().Errorf("Error getting repo ID: %s", err)
+		return
+	}
 
 	prId, err := createPullRequest(ctx,
 		ghrc.client,
@@ -150,6 +154,11 @@ func main() {
 		branchName,
 		"repoid",
 		"Title of the PR")
+
+	if err != nil {
+		logger.Sugar().Errorf("Error creating PR: %s", err)
+		return
+	}
 
 	logger.Sugar().Infof("Repo ID: %s", repoId)
 	logger.Sugar().Infof("Created PR: %s", prId)
