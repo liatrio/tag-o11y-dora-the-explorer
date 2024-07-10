@@ -9,6 +9,56 @@ import (
 	"github.com/Khan/genqlient/graphql"
 )
 
+// The possible states in which a deployment can be.
+type DeploymentState string
+
+const (
+	// The pending deployment was not updated after 30 minutes.
+	DeploymentStateAbandoned DeploymentState = "ABANDONED"
+	// The deployment is currently active.
+	DeploymentStateActive DeploymentState = "ACTIVE"
+	// An inactive transient deployment.
+	DeploymentStateDestroyed DeploymentState = "DESTROYED"
+	// The deployment experienced an error.
+	DeploymentStateError DeploymentState = "ERROR"
+	// The deployment has failed.
+	DeploymentStateFailure DeploymentState = "FAILURE"
+	// The deployment is inactive.
+	DeploymentStateInactive DeploymentState = "INACTIVE"
+	// The deployment is in progress.
+	DeploymentStateInProgress DeploymentState = "IN_PROGRESS"
+	// The deployment is pending.
+	DeploymentStatePending DeploymentState = "PENDING"
+	// The deployment has queued
+	DeploymentStateQueued DeploymentState = "QUEUED"
+	// The deployment was successful.
+	DeploymentStateSuccess DeploymentState = "SUCCESS"
+	// The deployment is waiting.
+	DeploymentStateWaiting DeploymentState = "WAITING"
+)
+
+// The possible states for a deployment status.
+type DeploymentStatusState string
+
+const (
+	// The deployment experienced an error.
+	DeploymentStatusStateError DeploymentStatusState = "ERROR"
+	// The deployment has failed.
+	DeploymentStatusStateFailure DeploymentStatusState = "FAILURE"
+	// The deployment is inactive.
+	DeploymentStatusStateInactive DeploymentStatusState = "INACTIVE"
+	// The deployment is in progress.
+	DeploymentStatusStateInProgress DeploymentStatusState = "IN_PROGRESS"
+	// The deployment is pending.
+	DeploymentStatusStatePending DeploymentStatusState = "PENDING"
+	// The deployment is queued
+	DeploymentStatusStateQueued DeploymentStatusState = "QUEUED"
+	// The deployment was successful.
+	DeploymentStatusStateSuccess DeploymentStatusState = "SUCCESS"
+	// The deployment is waiting.
+	DeploymentStatusStateWaiting DeploymentStatusState = "WAITING"
+)
+
 // __createIssueInput is used internally by genqlient
 type __createIssueInput struct {
 	Body         string `json:"Body"`
@@ -48,6 +98,18 @@ func (v *__createPullRequestInput) GetRepositoryId() string { return v.Repositor
 
 // GetTitle returns __createPullRequestInput.Title, and is useful for accessing the field via an interface.
 func (v *__createPullRequestInput) GetTitle() string { return v.Title }
+
+// __getLatestDeploymentsInput is used internally by genqlient
+type __getLatestDeploymentsInput struct {
+	Owner string `json:"owner"`
+	Repo  string `json:"repo"`
+}
+
+// GetOwner returns __getLatestDeploymentsInput.Owner, and is useful for accessing the field via an interface.
+func (v *__getLatestDeploymentsInput) GetOwner() string { return v.Owner }
+
+// GetRepo returns __getLatestDeploymentsInput.Repo, and is useful for accessing the field via an interface.
+func (v *__getLatestDeploymentsInput) GetRepo() string { return v.Repo }
 
 // __getRepoIdInput is used internally by genqlient
 type __getRepoIdInput struct {
@@ -143,6 +205,143 @@ type createPullRequestResponse struct {
 // GetCreatePullRequest returns createPullRequestResponse.CreatePullRequest, and is useful for accessing the field via an interface.
 func (v *createPullRequestResponse) GetCreatePullRequest() createPullRequestCreatePullRequestCreatePullRequestPayload {
 	return v.CreatePullRequest
+}
+
+// getLatestDeploymentsRepository includes the requested fields of the GraphQL type Repository.
+// The GraphQL type's documentation follows.
+//
+// A repository contains the content for a project.
+type getLatestDeploymentsRepository struct {
+	// Deployments associated with the repository
+	Deployments getLatestDeploymentsRepositoryDeploymentsDeploymentConnection `json:"deployments"`
+}
+
+// GetDeployments returns getLatestDeploymentsRepository.Deployments, and is useful for accessing the field via an interface.
+func (v *getLatestDeploymentsRepository) GetDeployments() getLatestDeploymentsRepositoryDeploymentsDeploymentConnection {
+	return v.Deployments
+}
+
+// getLatestDeploymentsRepositoryDeploymentsDeploymentConnection includes the requested fields of the GraphQL type DeploymentConnection.
+// The GraphQL type's documentation follows.
+//
+// The connection type for Deployment.
+type getLatestDeploymentsRepositoryDeploymentsDeploymentConnection struct {
+	// A list of nodes.
+	Nodes []getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeployment `json:"nodes"`
+}
+
+// GetNodes returns getLatestDeploymentsRepositoryDeploymentsDeploymentConnection.Nodes, and is useful for accessing the field via an interface.
+func (v *getLatestDeploymentsRepositoryDeploymentsDeploymentConnection) GetNodes() []getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeployment {
+	return v.Nodes
+}
+
+// getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeployment includes the requested fields of the GraphQL type Deployment.
+// The GraphQL type's documentation follows.
+//
+// Represents triggered deployment instance.
+type getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeployment struct {
+	// Identifies the date and time when the object was created.
+	CreatedAt time.Time `json:"createdAt"`
+	// Identifies the commit sha of the deployment.
+	Commit getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentCommit `json:"commit"`
+	// The deployment description.
+	Description string `json:"description"`
+	// The current state of the deployment.
+	State DeploymentState `json:"state"`
+	// A list of statuses associated with the deployment.
+	Statuses getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentStatusesDeploymentStatusConnection `json:"statuses"`
+}
+
+// GetCreatedAt returns getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeployment.CreatedAt, and is useful for accessing the field via an interface.
+func (v *getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeployment) GetCreatedAt() time.Time {
+	return v.CreatedAt
+}
+
+// GetCommit returns getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeployment.Commit, and is useful for accessing the field via an interface.
+func (v *getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeployment) GetCommit() getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentCommit {
+	return v.Commit
+}
+
+// GetDescription returns getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeployment.Description, and is useful for accessing the field via an interface.
+func (v *getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeployment) GetDescription() string {
+	return v.Description
+}
+
+// GetState returns getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeployment.State, and is useful for accessing the field via an interface.
+func (v *getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeployment) GetState() DeploymentState {
+	return v.State
+}
+
+// GetStatuses returns getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeployment.Statuses, and is useful for accessing the field via an interface.
+func (v *getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeployment) GetStatuses() getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentStatusesDeploymentStatusConnection {
+	return v.Statuses
+}
+
+// getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentCommit includes the requested fields of the GraphQL type Commit.
+// The GraphQL type's documentation follows.
+//
+// Represents a Git commit.
+type getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentCommit struct {
+	// The Git commit message
+	Message string `json:"message"`
+}
+
+// GetMessage returns getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentCommit.Message, and is useful for accessing the field via an interface.
+func (v *getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentCommit) GetMessage() string {
+	return v.Message
+}
+
+// getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentStatusesDeploymentStatusConnection includes the requested fields of the GraphQL type DeploymentStatusConnection.
+// The GraphQL type's documentation follows.
+//
+// The connection type for DeploymentStatus.
+type getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentStatusesDeploymentStatusConnection struct {
+	// A list of nodes.
+	Nodes []getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentStatusesDeploymentStatusConnectionNodesDeploymentStatus `json:"nodes"`
+}
+
+// GetNodes returns getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentStatusesDeploymentStatusConnection.Nodes, and is useful for accessing the field via an interface.
+func (v *getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentStatusesDeploymentStatusConnection) GetNodes() []getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentStatusesDeploymentStatusConnectionNodesDeploymentStatus {
+	return v.Nodes
+}
+
+// getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentStatusesDeploymentStatusConnectionNodesDeploymentStatus includes the requested fields of the GraphQL type DeploymentStatus.
+// The GraphQL type's documentation follows.
+//
+// Describes the status of a given deployment attempt.
+type getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentStatusesDeploymentStatusConnectionNodesDeploymentStatus struct {
+	// Identifies the date and time when the object was last updated.
+	UpdatedAt time.Time `json:"updatedAt"`
+	// Identifies the current state of the deployment.
+	State DeploymentStatusState `json:"state"`
+	// Identifies the environment of the deployment at the time of this deployment status
+	Environment string `json:"environment"`
+}
+
+// GetUpdatedAt returns getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentStatusesDeploymentStatusConnectionNodesDeploymentStatus.UpdatedAt, and is useful for accessing the field via an interface.
+func (v *getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentStatusesDeploymentStatusConnectionNodesDeploymentStatus) GetUpdatedAt() time.Time {
+	return v.UpdatedAt
+}
+
+// GetState returns getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentStatusesDeploymentStatusConnectionNodesDeploymentStatus.State, and is useful for accessing the field via an interface.
+func (v *getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentStatusesDeploymentStatusConnectionNodesDeploymentStatus) GetState() DeploymentStatusState {
+	return v.State
+}
+
+// GetEnvironment returns getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentStatusesDeploymentStatusConnectionNodesDeploymentStatus.Environment, and is useful for accessing the field via an interface.
+func (v *getLatestDeploymentsRepositoryDeploymentsDeploymentConnectionNodesDeploymentStatusesDeploymentStatusConnectionNodesDeploymentStatus) GetEnvironment() string {
+	return v.Environment
+}
+
+// getLatestDeploymentsResponse is returned by getLatestDeployments on success.
+type getLatestDeploymentsResponse struct {
+	// Lookup a given repository by the owner and repository name.
+	Repository getLatestDeploymentsRepository `json:"repository"`
+}
+
+// GetRepository returns getLatestDeploymentsResponse.Repository, and is useful for accessing the field via an interface.
+func (v *getLatestDeploymentsResponse) GetRepository() getLatestDeploymentsRepository {
+	return v.Repository
 }
 
 // getRepoIdRepository includes the requested fields of the GraphQL type Repository.
@@ -293,6 +492,59 @@ func createPullRequest(
 	var err_ error
 
 	var data_ createPullRequestResponse
+	resp_ := &graphql.Response{Data: &data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return &data_, err_
+}
+
+// The query or mutation executed by getLatestDeployments.
+const getLatestDeployments_Operation = `
+query getLatestDeployments ($owner: String!, $repo: String!) {
+	repository(owner: $owner, name: $repo) {
+		deployments(last: 10) {
+			nodes {
+				createdAt
+				commit {
+					message
+				}
+				description
+				state
+				statuses(first: 10) {
+					nodes {
+						updatedAt
+						state
+						environment
+					}
+				}
+			}
+		}
+	}
+}
+`
+
+func getLatestDeployments(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	owner string,
+	repo string,
+) (*getLatestDeploymentsResponse, error) {
+	req_ := &graphql.Request{
+		OpName: "getLatestDeployments",
+		Query:  getLatestDeployments_Operation,
+		Variables: &__getLatestDeploymentsInput{
+			Owner: owner,
+			Repo:  repo,
+		},
+	}
+	var err_ error
+
+	var data_ getLatestDeploymentsResponse
 	resp_ := &graphql.Response{Data: &data_}
 
 	err_ = client_.MakeRequest(

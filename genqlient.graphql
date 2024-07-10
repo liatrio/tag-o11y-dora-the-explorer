@@ -19,6 +19,29 @@ query getRepoId($Owner: String!, $Name: String!) {
   }
 }
 
+query getLatestDeployments($owner: String!, $repo: String!) {
+  repository(owner: $owner, name: $repo) {
+    deployments(last: 10) {
+      nodes {
+        createdAt
+        commit {
+          message
+        }
+        description
+        state
+        statuses (first: 10) {
+          nodes {
+            updatedAt
+            state
+            environment
+          }
+        }
+      }
+    }
+  }
+}
+
+
 mutation createIssue($Body: String!, $Title: String!, $RepositoryId: ID!) {
   createIssue(input: {
     body: $Body,

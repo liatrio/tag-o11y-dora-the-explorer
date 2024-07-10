@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/go-git/go-git/v5"
 	gitHttp "github.com/go-git/go-git/v5/plumbing/transport/http"
@@ -49,17 +51,36 @@ func init() {
 	}()
 }
 
-func prepare() (*GitHubRepoContext, error) {
-	ghrc := &GitHubRepoContext{}
-	// Collect configuration from environment variables
+func prepEnvironment() (ghrc *GitHubRepoContext, doraTeam *DoraTeam, err error) {
+	ghrc = &GitHubRepoContext{}
+	doraTeam = &DoraTeam{}
+	doraTeamPerformanceLevel := strings.ToLower(os.Getenv("DORA_TEAM_PERFORMANCE_LEVEL"))
+	if doraTeamPerformanceLevel == "" {
+		return nil, nil, errors.New("DORA_TEAM_PERFORMANCE_LEVEL is not set")
+	}
+
+	switch doraTeamPerformanceLevel {
+	case "elite":
+		doraTeam = NewEliteDoraTeam()
+	case "high":
+		doraTeam = NewHighDoraTeam()
+	case "medium":
+		doraTeam = NewMediumDoraTeam()
+	case "low":
+		doraTeam = NewLowDoraTeam()
+	default:
+		logger.Sugar().Info("Unknown team performance level")
+		return nil, nil, fmt.Errorf("Unknown team performance level: %s", doraTeamPerformanceLevel)
+	}
+
 	ghrc.pat = os.Getenv("GH_PAT")
 	if ghrc.pat == "" {
-		return nil, errors.New("GH_PAT is not set")
+		return nil, nil, errors.New("GH_PAT is not set")
 	}
 
 	ghrc.org = os.Getenv("GH_ORG")
 	if ghrc.org == "" {
-		return nil, errors.New("GH_ORG is not set")
+		return nil, nil, errors.New("GH_ORG is not set")
 	}
 
 	graphqlUrl := os.Getenv("GH_GRAPHQL_URL")
@@ -76,24 +97,26 @@ func prepare() (*GitHubRepoContext, error) {
 
 	ghrc.name = os.Getenv("GH_REPO_NAME")
 	if ghrc.name == "" {
-		return nil, errors.New("GH_REPO_NAME is not set")
+		return nil, nil, errors.New("GH_REPO_NAME is not set")
 	}
 
-	var err error
 	ghrc.remoteRepoUrl, err = ghrc.CalculateRepoUrl()
 	if err != nil {
-		return nil, fmt.Errorf("Error calculating repo URL: %s", err)
+		return nil, nil, fmt.Errorf("Error calculating repo URL: %s", err)
 	}
 
-	return ghrc, nil
+	return ghrc, doraTeam, nil
 }
 
 func main() {
-	ghrc, err := prepare()
+	ctx := context.Background()
+	ghrc, doraTeam, err := prepEnvironment()
 	if err != nil {
-		logger.Sugar().Errorf("Error preparing: %s", err)
+		logger.Sugar().Errorf("Error preparing environment: %s", err)
 		return
 	}
+
+	logger.Sugar().Infof("Dora team performance level: %s", doraTeam.Level)
 
 	// Create a temp directory and clone the repository
 	dir, err := os.MkdirTemp("", "cloned-repo")
@@ -102,25 +125,12 @@ func main() {
 		return
 	}
 	logger.Sugar().Infof("Temp dir is: %v", dir)
+	ghrc.localDir = dir
 
 	defer os.RemoveAll(dir) // clean up
 
-	//region Test Graphql client
-
-	ctx := context.Background()
-	var viewerResp *getViewerResponse
-	viewerResp, err = getViewer(ctx, ghrc.client)
-
-	if err != nil {
-		logger.Sugar().Errorf("Error getting viewer: %s", err)
-		return
-	}
-	logger.Sugar().Infof("Viewer name: %s", viewerResp.Viewer.MyName)
-	//endregion
-
 	// Clones the repository into the given dir, just as a normal git clone does
 	repo, err := git.PlainClone(dir, false, &git.CloneOptions{
-		// URL: "https://github.com/liatrio/dora-deploy-demo.git",
 		URL: ghrc.remoteRepoUrl,
 		Auth: &gitHttp.BasicAuth{
 			Username: "dora-the-explorer",
@@ -132,6 +142,7 @@ func main() {
 		logger.Sugar().Errorf("Error cloning repository: %s", err)
 		return
 	}
+	ghrc.repo = repo
 
 	head, err := repo.Head()
 	if err != nil {
@@ -141,7 +152,45 @@ func main() {
 
 	ghrc.baseRefName = head.Name().Short()
 
-	// infinte loop
+	// Determine how often we need to generate events based on the DORA team
+	// performance level.
+
+	// infinite loop
+	for {
+		// See when the most recent deployment was.
+		recentDeployments, err := ghrc.GetLastDeployment(ctx)
+
+		if err != nil {
+			logger.Sugar().Errorf("Error getting latest deployments for %s/%s: %s", ghrc.org, ghrc.name, err)
+			return
+		}
+
+		// Make a ticker to create a deployment based off the ghrc.MinutesBetweenDeploys
+		// and the last deployment time.
+		var t *time.Ticker
+		if recentDeployments == nil {
+			logger.Sugar().Infof("No deployments found making one in %d minutes", doraTeam.MinutesBetweenDeploys)
+			t = time.NewTicker(time.Duration(doraTeam.MinutesBetweenDeploys) * time.Minute)
+			// <-t.C // This will pause execution of this thread until the timer ticks
+		} else {
+			logger.Sugar().Infof("Last deployment was at %s", recentDeployments.CreatedAt)
+			// Calculate the time until the next deployment
+			nextDeploymentTime := recentDeployments.CreatedAt.Add(time.Duration(doraTeam.MinutesBetweenDeploys) * time.Minute)
+			timeUntilNextDeployment := time.Until(nextDeploymentTime)
+			if timeUntilNextDeployment < 0 {
+				// If the time until the next deployment is negative, then we should deploy in 10 seconds
+				timeUntilNextDeployment = 10 * time.Second
+			}
+			logger.Sugar().Infof("Next deployment in %s", timeUntilNextDeployment)
+			t = time.NewTicker(timeUntilNextDeployment)
+			// <-t.C // This will pause execution of this thread until the timer ticks
+		}
+		<-t.C
+		logger.Sugar().Info("Creating deployment")
+		return
+
+		logger.Sugar().Infof("Recent deployments: %v", recentDeployments)
+	}
 
 	needsDowngrade, err := NeedsDowngrade(dir)
 	if err != nil {
@@ -154,7 +203,7 @@ func main() {
 		return
 	}
 
-	branchName, err := GenerateDowngradeRemoteBranch(dir, repo, ghrc, logger)
+	branchName, err := GenerateDowngradeRemoteBranch(ghrc, logger)
 	if err != nil {
 		logger.Sugar().Errorf("Error generating downgrade branch: %s", err)
 		return

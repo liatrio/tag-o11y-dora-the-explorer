@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestPrepareSuccessful(t *testing.T) {
+func TestPrepEnvironmentSuccessful(t *testing.T) {
 	// Set up environment variables
 	os.Setenv("GH_PAT", "test-pat")
 	os.Setenv("GH_ORG", "test-org")
@@ -21,7 +21,7 @@ func TestPrepareSuccessful(t *testing.T) {
 		os.Unsetenv("GH_REPO_NAME")
 	}()
 
-	ghrc, err := prepare()
+	ghrc, err := prepEnvironment()
 	if err != nil {
 		t.Errorf("Error preparing: %s", err)
 	}
