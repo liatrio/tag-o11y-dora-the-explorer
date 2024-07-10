@@ -12,6 +12,7 @@ func TestPrepEnvironmentSuccessful(t *testing.T) {
 	os.Setenv("GH_GRAPHQL_URL", "test-graphql-url")
 	os.Setenv("GH_BASE_URL", "test-base-url")
 	os.Setenv("GH_REPO_NAME", "test-repo-name")
+	os.Setenv("DORA_TEAM_PERFORMANCE_LEVEL", "elite")
 
 	defer func() {
 		os.Unsetenv("GH_PAT")
@@ -21,7 +22,7 @@ func TestPrepEnvironmentSuccessful(t *testing.T) {
 		os.Unsetenv("GH_REPO_NAME")
 	}()
 
-	ghrc, err := prepEnvironment()
+	ghrc, doraTeam, err := prepEnvironment()
 	if err != nil {
 		t.Errorf("Error preparing: %s", err)
 	}
@@ -41,5 +42,8 @@ func TestPrepEnvironmentSuccessful(t *testing.T) {
 	}
 	if ghrc.name != "test-repo-name" {
 		t.Errorf("Expected name to be test-repo-name, got %s", ghrc.name)
+	}
+	if doraTeam.Level != "Elite" {
+		t.Errorf("Expected doraTeam.Level to be Elite, got %s", doraTeam.Level)
 	}
 }
