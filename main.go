@@ -1,16 +1,19 @@
 package main
 
-import (
-	"encoding/json"
+//go:generate .tools/genqlient genqlient.yaml
 
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/go-git/go-git/v5"
+	gitHttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 	"go.uber.org/zap"
-	// Import your OTEL packages here for instrumentation.
-	// The default packages are for manual instrumentation, but you can use
-	// auto-instrumentation packages to capture communication at the edge.
-	// For more information see https://opentelemetry.io/docs/languages/go/getting-started/
-	//"go.opentelemetry.io/otel"
-	//"go.opentelemetry.io/otel/trace"
-	//"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 )
 
 var (
@@ -40,6 +43,7 @@ func init() {
 	}
 
 	logger = zap.Must(cfg.Build())
+
 	defer func() {
 		if err := logger.Sync(); err != nil {
 			return
@@ -47,6 +51,187 @@ func init() {
 	}()
 }
 
+func prepEnvironment() (ghrc *GitHubRepoContext, doraTeam *DoraTeam, err error) {
+	ghrc = &GitHubRepoContext{}
+	doraTeam = &DoraTeam{}
+	doraTeamPerformanceLevel := strings.ToLower(os.Getenv("DORA_TEAM_PERFORMANCE_LEVEL"))
+	if doraTeamPerformanceLevel == "" {
+		return nil, nil, errors.New("DORA_TEAM_PERFORMANCE_LEVEL is not set")
+	}
+
+	switch doraTeamPerformanceLevel {
+	case "elite":
+		doraTeam = NewEliteDoraTeam()
+	case "high":
+		doraTeam = NewHighDoraTeam()
+	case "medium":
+		doraTeam = NewMediumDoraTeam()
+	case "low":
+		doraTeam = NewLowDoraTeam()
+	default:
+		logger.Sugar().Info("Unknown team performance level")
+		return nil, nil, fmt.Errorf("Unknown team performance level: %s", doraTeamPerformanceLevel)
+	}
+
+	ghrc.pat = os.Getenv("GH_PAT")
+	if ghrc.pat == "" {
+		return nil, nil, errors.New("GH_PAT is not set")
+	}
+
+	ghrc.org = os.Getenv("GH_ORG")
+	if ghrc.org == "" {
+		return nil, nil, errors.New("GH_ORG is not set")
+	}
+
+	graphqlUrl := os.Getenv("GH_GRAPHQL_URL")
+	if graphqlUrl == "" {
+		graphqlUrl = "https://api.github.com/graphql"
+	}
+
+	ghrc.gitHubDomain = os.Getenv("GH_BASE_URL")
+	if ghrc.gitHubDomain == "" {
+		ghrc.gitHubDomain = "https://github.com"
+	}
+
+	ghrc.client = ghrc.generateClient(graphqlUrl)
+
+	ghrc.name = os.Getenv("GH_REPO_NAME")
+	if ghrc.name == "" {
+		return nil, nil, errors.New("GH_REPO_NAME is not set")
+	}
+
+	ghrc.remoteRepoUrl, err = ghrc.CalculateRepoUrl()
+	if err != nil {
+		return nil, nil, fmt.Errorf("Error calculating repo URL: %s", err)
+	}
+
+	return ghrc, doraTeam, nil
+}
+
 func main() {
-	logger.Info("Hello World!")
+	ctx := context.Background()
+	ghrc, doraTeam, err := prepEnvironment()
+	if err != nil {
+		logger.Sugar().Errorf("Error preparing environment: %s", err)
+		return
+	}
+
+	logger.Sugar().Infof("Dora team performance level: %s", doraTeam.Level)
+
+	// Create a temp directory and clone the repository
+	dir, err := os.MkdirTemp("", "cloned-repo")
+	if err != nil {
+		logger.Sugar().Errorf("Error creating temp dir: %s", err)
+		return
+	}
+	logger.Sugar().Infof("Temp dir is: %v", dir)
+	ghrc.localDir = dir
+
+	defer os.RemoveAll(dir) // clean up
+
+	// Clones the repository into the given dir, just as a normal git clone does
+	repo, err := git.PlainClone(dir, false, &git.CloneOptions{
+		URL: ghrc.remoteRepoUrl,
+		Auth: &gitHttp.BasicAuth{
+			Username: "dora-the-explorer",
+			Password: ghrc.pat,
+		},
+	})
+
+	if err != nil {
+		logger.Sugar().Errorf("Error cloning repository: %s", err)
+		return
+	}
+	ghrc.repo = repo
+
+	head, err := repo.Head()
+	if err != nil {
+		logger.Sugar().Errorf("Error getting HEAD: %s", err)
+		return
+	}
+
+	ghrc.baseRefName = head.Name().Short()
+
+	// Determine how often we need to generate events based on the DORA team
+	// performance level.
+
+	// infinite loop
+	for {
+		// See when the most recent deployment was.
+		recentDeployments, err := ghrc.GetLastDeployment(ctx)
+
+		if err != nil {
+			logger.Sugar().Errorf("Error getting latest deployments for %s/%s: %s", ghrc.org, ghrc.name, err)
+			return
+		}
+
+		// Make a ticker to create a deployment based off the ghrc.MinutesBetweenDeploys
+		// and the last deployment time.
+		var t *time.Ticker
+		if recentDeployments == nil {
+			logger.Sugar().Infof("No deployments found making one in %d minutes", doraTeam.MinutesBetweenDeploys)
+			t = time.NewTicker(time.Duration(doraTeam.MinutesBetweenDeploys) * time.Minute)
+			// <-t.C // This will pause execution of this thread until the timer ticks
+		} else {
+			logger.Sugar().Infof("Last deployment was at %s", recentDeployments.CreatedAt)
+			// Calculate the time until the next deployment
+			nextDeploymentTime := recentDeployments.CreatedAt.Add(time.Duration(doraTeam.MinutesBetweenDeploys) * time.Minute)
+			timeUntilNextDeployment := time.Until(nextDeploymentTime)
+			if timeUntilNextDeployment < 0 {
+				// If the time until the next deployment is negative, then we should deploy in 10 seconds
+				timeUntilNextDeployment = 10 * time.Second
+			}
+			logger.Sugar().Infof("Next deployment in %s", timeUntilNextDeployment)
+			t = time.NewTicker(timeUntilNextDeployment)
+			// <-t.C // This will pause execution of this thread until the timer ticks
+		}
+		<-t.C
+		logger.Sugar().Info("Creating deployment")
+		return
+
+		logger.Sugar().Infof("Recent deployments: %v", recentDeployments)
+	}
+
+	needsDowngrade, err := NeedsDowngrade(dir)
+	if err != nil {
+		logger.Sugar().Errorf("Error checking for downgrade: %s", err)
+		return
+	}
+
+	if !needsDowngrade {
+		logger.Sugar().Info("No downgrade needed")
+		return
+	}
+
+	branchName, err := GenerateDowngradeRemoteBranch(ghrc, logger)
+	if err != nil {
+		logger.Sugar().Errorf("Error generating downgrade branch: %s", err)
+		return
+	}
+
+	repoIdResp, err := getRepoId(ctx, ghrc.client, ghrc.org, ghrc.name)
+	if err != nil {
+		logger.Sugar().Errorf("Error getting repo ID: %s", err)
+		return
+	}
+
+	prId, err := createPullRequest(ctx,
+		ghrc.client,
+		ghrc.baseRefName,
+		"This is the body of the PR",
+		branchName,
+		repoIdResp.Repository.Id,
+		"Title of the PR")
+
+	// Merge PR
+
+	if err != nil {
+		logger.Sugar().Errorf("Error creating PR: %s", err)
+		return
+	}
+
+	logger.Sugar().Infof("Repo ID: %s", repoIdResp)
+	logger.Sugar().Infof("Created PR: %s", prId)
+
+	logger.Sugar().Infof("Pushed to remote branch: %s", branchName)
 }

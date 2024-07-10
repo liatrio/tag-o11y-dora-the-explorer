@@ -7,6 +7,7 @@ package tools // import "github.com/liatrio/tag-o11y-dora-the-explorer/internal/
 // https://go.dev/wiki/Modules#how-can-i-track-tool-dependencies-for-a-module
 
 import (
+	_ "github.com/Khan/genqlient"
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
 	_ "github.com/goreleaser/goreleaser/v2"
 	_ "github.com/securego/gosec/v2/cmd/gosec"

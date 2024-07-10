@@ -1,0 +1,76 @@
+query getViewer {
+  viewer {
+    MyName: name
+    createdAt
+  }
+}
+
+# getUser gets the given user's name from their username.
+query getUser($Login: String!) {
+  user(login: $Login) {
+    theirName: name
+    createdAt
+  }
+}
+
+query getRepoId($Owner: String!, $Name: String!) {
+  repository(owner: $Owner, name: $Name) {
+    id
+  }
+}
+
+query getLatestDeployments($owner: String!, $repo: String!) {
+  repository(owner: $owner, name: $repo) {
+    deployments(last: 10) {
+      nodes {
+        createdAt
+        commit {
+          message
+        }
+        description
+        state
+        statuses (first: 10) {
+          nodes {
+            updatedAt
+            state
+            environment
+          }
+        }
+      }
+    }
+  }
+}
+
+
+mutation createIssue($Body: String!, $Title: String!, $RepositoryId: ID!) {
+  createIssue(input: {
+    body: $Body,
+    title: $Title,
+    repositoryId: $RepositoryId
+  })
+  {
+    issue {
+      id
+    }
+  }
+}
+
+mutation createPullRequest(
+  $BaseRefName: String!,
+  $Body: String!,
+  $HeadRefName: String!,
+  $RepositoryId: ID!,
+  $Title: String!) {
+  createPullRequest(input: {
+    baseRefName: $BaseRefName,
+    body: $Body,
+    headRefName: $HeadRefName,
+    repositoryId: $RepositoryId,
+    title: $Title
+  })
+  {
+    pullRequest {
+      id
+    }
+  }
+}
