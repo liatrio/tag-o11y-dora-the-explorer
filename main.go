@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
 	"time"
@@ -165,31 +166,40 @@ func main() {
 			return
 		}
 
-		// Make a ticker to create a deployment based off the ghrc.MinutesBetweenDeploys
-		// and the last deployment time.
-		var t *time.Ticker
-		if recentDeployments == nil {
-			logger.Sugar().Infof("No deployments found making one in %d minutes", doraTeam.MinutesBetweenDeploys)
-			t = time.NewTicker(time.Duration(doraTeam.MinutesBetweenDeploys) * time.Minute)
-			// <-t.C // This will pause execution of this thread until the timer ticks
-		} else {
-			logger.Sugar().Infof("Last deployment was at %s", recentDeployments.CreatedAt)
-			// Calculate the time until the next deployment
-			nextDeploymentTime := recentDeployments.CreatedAt.Add(time.Duration(doraTeam.MinutesBetweenDeploys) * time.Minute)
-			timeUntilNextDeployment := time.Until(nextDeploymentTime)
-			if timeUntilNextDeployment < 0 {
-				// If the time until the next deployment is negative, then we should deploy in 10 seconds
-				timeUntilNextDeployment = 10 * time.Second
-			}
-			logger.Sugar().Infof("Next deployment in %s", timeUntilNextDeployment)
-			t = time.NewTicker(timeUntilNextDeployment)
-			// <-t.C // This will pause execution of this thread until the timer ticks
+		lastDeploy := time.Unix(0, 0)
+		if recentDeployments != nil {
+			lastDeploy = recentDeployments.CreatedAt
 		}
+
+		// If the last deployment was less than the lower bound of the DORA team's
+		// deployment frequency, then we don't need to generate a deployment.
+		if time.Since(lastDeploy) < time.Duration(doraTeam.MinutesBetweenDeployRange.LowerBound)*time.Minute {
+			logger.Sugar().Infof("Last deploy was before %d minutes... skipping", doraTeam.MinutesBetweenDeployRange.LowerBound)
+			continue
+		}
+
+		// If the last deployment was more than the upper bound of the DORA team's
+		// deployment frequency, then we need to generate a deployment now.
+		var minutesBetweenDeploys int
+		if time.Since(lastDeploy) > time.Duration(doraTeam.MinutesBetweenDeployRange.UpperBound)*time.Minute {
+			minutesBetweenDeploys = 1 // time.Ticker will panic if 0
+		} else {
+			// Generate a random number between the lower and upper bounds
+			// of the DORA team's deployment frequency
+			minutesBetweenDeploys = rand.Intn(
+				doraTeam.MinutesBetweenDeployRange.UpperBound-doraTeam.MinutesBetweenDeployRange.LowerBound) +
+				doraTeam.MinutesBetweenDeployRange.LowerBound
+		}
+
+		logger.Sugar().Infof("Last deployment was at %s. Will generate a deployment in %d minutes",
+			lastDeploy,
+			doraTeam.MinutesBetweenDeployRange.UpperBound,
+			minutesBetweenDeploys)
+
+		t := time.NewTicker(time.Duration(minutesBetweenDeploys) * time.Minute)
 		<-t.C
 		logger.Sugar().Info("Creating deployment")
 		return
-
-		logger.Sugar().Infof("Recent deployments: %v", recentDeployments)
 	}
 
 	needsDowngrade, err := NeedsDowngrade(dir)

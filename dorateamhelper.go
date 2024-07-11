@@ -1,8 +1,13 @@
 package main
 
+type Range struct {
+	LowerBound int
+	UpperBound int
+}
+
 type DoraTeam struct {
-	Level                 string
-	MinutesBetweenDeploys int
+	Level                     string
+	MinutesBetweenDeployRange Range
 }
 
 //	 Performance level					Elite:
@@ -12,8 +17,11 @@ type DoraTeam struct {
 //	 	Failed deployment recovery time: 	Less than one hour
 func NewEliteDoraTeam() *DoraTeam {
 	return &DoraTeam{
-		Level:                 "Elite",
-		MinutesBetweenDeploys: 240, // 4 hours
+		Level: "Elite",
+		MinutesBetweenDeployRange: Range{ // Between 1 and 12 hours
+			LowerBound: 60,
+			UpperBound: 720,
+		},
 	}
 }
 
@@ -24,8 +32,11 @@ func NewEliteDoraTeam() *DoraTeam {
 //	 	Failed deployment recovery time: 	Less than one day
 func NewHighDoraTeam() *DoraTeam {
 	return &DoraTeam{
-		Level:                 "High",
-		MinutesBetweenDeploys: 60,
+		Level: "High",
+		MinutesBetweenDeployRange: Range{ // Between 1440 and 10080 minutes
+			LowerBound: 1440,
+			UpperBound: 10080,
+		},
 	}
 }
 
@@ -36,8 +47,11 @@ func NewHighDoraTeam() *DoraTeam {
 //	 	Failed deployment recovery time: 	Between one day and one week
 func NewMediumDoraTeam() *DoraTeam {
 	return &DoraTeam{
-		Level:                 "Medium",
-		MinutesBetweenDeploys: 1440,
+		Level: "Medium",
+		MinutesBetweenDeployRange: Range{ // Between 10080 and 40320 minutes
+			LowerBound: 10080,
+			UpperBound: 40320,
+		},
 	}
 }
 
@@ -48,7 +62,10 @@ func NewMediumDoraTeam() *DoraTeam {
 //	 	Failed deployment recovery time: 	Between one month and six months
 func NewLowDoraTeam() *DoraTeam {
 	return &DoraTeam{
-		Level:                 "Low",
-		MinutesBetweenDeploys: 10080,
+		Level: "Low",
+		MinutesBetweenDeployRange: Range{ // Between 40320 and 201600 minutes
+			LowerBound: 40320,
+			UpperBound: 201600,
+		},
 	}
 }
