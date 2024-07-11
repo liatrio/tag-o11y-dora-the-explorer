@@ -1,5 +1,12 @@
 package main
 
+import (
+	"context"
+	"fmt"
+	"math/rand"
+	"time"
+)
+
 type Range struct {
 	LowerBound int
 	UpperBound int
@@ -68,4 +75,45 @@ func NewLowDoraTeam() *DoraTeam {
 			UpperBound: 201600,
 		},
 	}
+}
+
+// Given a teams performance level this function will return the number of minutes
+// until the next deployment should be generated. Takes into account when the
+// last deployment was made and the range of minutes between deployments for the
+// DORA team.
+//
+// Returns -1 if we should skip this deployment
+func (d *DoraTeam) MinutesUntilNextDeployment(ctx context.Context, ghrc *GitHubRepoContext) (int, error) {
+	recentDeployments, err := ghrc.GetLastDeployment(ctx)
+
+	if err != nil {
+		return 0, fmt.Errorf("Error getting latest deployments for %s/%s: %s", ghrc.org, ghrc.name, err)
+	}
+
+	lastDeploy := time.Unix(0, 0)
+	if recentDeployments != nil {
+		lastDeploy = recentDeployments.CreatedAt
+	}
+
+	// If the last deployment was less than the lower bound of the DORA team's
+	// deployment frequency, then we don't need to generate a deployment.
+	if time.Since(lastDeploy) < time.Duration(d.MinutesBetweenDeployRange.LowerBound)*time.Minute {
+		logger.Sugar().Infof("Last deploy was before %d minutes... skipping", d.MinutesBetweenDeployRange.LowerBound)
+		return -1, nil
+	}
+
+	// If the last deployment was more than the upper bound of the DORA team's
+	// deployment frequency, then we need to generate a deployment now.
+	var minutesBetweenDeploys int
+	if time.Since(lastDeploy) > time.Duration(d.MinutesBetweenDeployRange.UpperBound)*time.Minute {
+		minutesBetweenDeploys = 1 // time.Ticker will panic if 0
+	} else {
+		// Generate a random number between the lower and upper bounds
+		// of the DORA team's deployment frequency
+		minutesBetweenDeploys = rand.Intn(
+			d.MinutesBetweenDeployRange.UpperBound-d.MinutesBetweenDeployRange.LowerBound) +
+			d.MinutesBetweenDeployRange.LowerBound
+	}
+
+	return minutesBetweenDeploys, nil
 }
