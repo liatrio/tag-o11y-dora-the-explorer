@@ -59,6 +59,22 @@ const (
 	DeploymentStatusStateWaiting DeploymentStatusState = "WAITING"
 )
 
+// The possible commit status states.
+type StatusState string
+
+const (
+	// Status is errored.
+	StatusStateError StatusState = "ERROR"
+	// Status is expected.
+	StatusStateExpected StatusState = "EXPECTED"
+	// Status is failing.
+	StatusStateFailure StatusState = "FAILURE"
+	// Status is pending.
+	StatusStatePending StatusState = "PENDING"
+	// Status is successful.
+	StatusStateSuccess StatusState = "SUCCESS"
+)
+
 // __createIssueInput is used internally by genqlient
 type __createIssueInput struct {
 	Body         string `json:"Body"`
@@ -111,6 +127,22 @@ func (v *__getLatestDeploymentsInput) GetOwner() string { return v.Owner }
 // GetRepo returns __getLatestDeploymentsInput.Repo, and is useful for accessing the field via an interface.
 func (v *__getLatestDeploymentsInput) GetRepo() string { return v.Repo }
 
+// __getPullRequestStatusCheckRollupInput is used internally by genqlient
+type __getPullRequestStatusCheckRollupInput struct {
+	Owner    string `json:"owner"`
+	Repo     string `json:"repo"`
+	PrNumber int    `json:"prNumber"`
+}
+
+// GetOwner returns __getPullRequestStatusCheckRollupInput.Owner, and is useful for accessing the field via an interface.
+func (v *__getPullRequestStatusCheckRollupInput) GetOwner() string { return v.Owner }
+
+// GetRepo returns __getPullRequestStatusCheckRollupInput.Repo, and is useful for accessing the field via an interface.
+func (v *__getPullRequestStatusCheckRollupInput) GetRepo() string { return v.Repo }
+
+// GetPrNumber returns __getPullRequestStatusCheckRollupInput.PrNumber, and is useful for accessing the field via an interface.
+func (v *__getPullRequestStatusCheckRollupInput) GetPrNumber() int { return v.PrNumber }
+
 // __getRepoIdInput is used internally by genqlient
 type __getRepoIdInput struct {
 	Owner string `json:"Owner"`
@@ -130,6 +162,14 @@ type __getUserInput struct {
 
 // GetLogin returns __getUserInput.Login, and is useful for accessing the field via an interface.
 func (v *__getUserInput) GetLogin() string { return v.Login }
+
+// __mergePullRequestInput is used internally by genqlient
+type __mergePullRequestInput struct {
+	PullRequestId string `json:"pullRequestId"`
+}
+
+// GetPullRequestId returns __mergePullRequestInput.PullRequestId, and is useful for accessing the field via an interface.
+func (v *__mergePullRequestInput) GetPullRequestId() string { return v.PullRequestId }
 
 // createIssueCreateIssueCreateIssuePayload includes the requested fields of the GraphQL type CreateIssuePayload.
 // The GraphQL type's documentation follows.
@@ -189,11 +229,18 @@ func (v *createPullRequestCreatePullRequestCreatePullRequestPayload) GetPullRequ
 type createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest struct {
 	// The Node ID of the PullRequest object
 	Id string `json:"id"`
+	// Identifies the pull request number.
+	Number int `json:"number"`
 }
 
 // GetId returns createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest.Id, and is useful for accessing the field via an interface.
 func (v *createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest) GetId() string {
 	return v.Id
+}
+
+// GetNumber returns createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest.Number, and is useful for accessing the field via an interface.
+func (v *createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest) GetNumber() int {
+	return v.Number
 }
 
 // createPullRequestResponse is returned by createPullRequest on success.
@@ -344,6 +391,59 @@ func (v *getLatestDeploymentsResponse) GetRepository() getLatestDeploymentsRepos
 	return v.Repository
 }
 
+// getPullRequestStatusCheckRollupRepository includes the requested fields of the GraphQL type Repository.
+// The GraphQL type's documentation follows.
+//
+// A repository contains the content for a project.
+type getPullRequestStatusCheckRollupRepository struct {
+	// Returns a single pull request from the current repository by number.
+	PullRequest getPullRequestStatusCheckRollupRepositoryPullRequest `json:"pullRequest"`
+}
+
+// GetPullRequest returns getPullRequestStatusCheckRollupRepository.PullRequest, and is useful for accessing the field via an interface.
+func (v *getPullRequestStatusCheckRollupRepository) GetPullRequest() getPullRequestStatusCheckRollupRepositoryPullRequest {
+	return v.PullRequest
+}
+
+// getPullRequestStatusCheckRollupRepositoryPullRequest includes the requested fields of the GraphQL type PullRequest.
+// The GraphQL type's documentation follows.
+//
+// A repository pull request.
+type getPullRequestStatusCheckRollupRepositoryPullRequest struct {
+	// Check and Status rollup information for the PR's head ref.
+	StatusCheckRollup getPullRequestStatusCheckRollupRepositoryPullRequestStatusCheckRollup `json:"statusCheckRollup"`
+}
+
+// GetStatusCheckRollup returns getPullRequestStatusCheckRollupRepositoryPullRequest.StatusCheckRollup, and is useful for accessing the field via an interface.
+func (v *getPullRequestStatusCheckRollupRepositoryPullRequest) GetStatusCheckRollup() getPullRequestStatusCheckRollupRepositoryPullRequestStatusCheckRollup {
+	return v.StatusCheckRollup
+}
+
+// getPullRequestStatusCheckRollupRepositoryPullRequestStatusCheckRollup includes the requested fields of the GraphQL type StatusCheckRollup.
+// The GraphQL type's documentation follows.
+//
+// Represents the rollup for both the check runs and status for a commit.
+type getPullRequestStatusCheckRollupRepositoryPullRequestStatusCheckRollup struct {
+	// The combined status for the commit.
+	State StatusState `json:"state"`
+}
+
+// GetState returns getPullRequestStatusCheckRollupRepositoryPullRequestStatusCheckRollup.State, and is useful for accessing the field via an interface.
+func (v *getPullRequestStatusCheckRollupRepositoryPullRequestStatusCheckRollup) GetState() StatusState {
+	return v.State
+}
+
+// getPullRequestStatusCheckRollupResponse is returned by getPullRequestStatusCheckRollup on success.
+type getPullRequestStatusCheckRollupResponse struct {
+	// Lookup a given repository by the owner and repository name.
+	Repository getPullRequestStatusCheckRollupRepository `json:"repository"`
+}
+
+// GetRepository returns getPullRequestStatusCheckRollupResponse.Repository, and is useful for accessing the field via an interface.
+func (v *getPullRequestStatusCheckRollupResponse) GetRepository() getPullRequestStatusCheckRollupRepository {
+	return v.Repository
+}
+
 // getRepoIdRepository includes the requested fields of the GraphQL type Repository.
 // The GraphQL type's documentation follows.
 //
@@ -417,6 +517,52 @@ func (v *getViewerViewerUser) GetMyName() string { return v.MyName }
 // GetCreatedAt returns getViewerViewerUser.CreatedAt, and is useful for accessing the field via an interface.
 func (v *getViewerViewerUser) GetCreatedAt() time.Time { return v.CreatedAt }
 
+// mergePullRequestMergePullRequestMergePullRequestPayload includes the requested fields of the GraphQL type MergePullRequestPayload.
+// The GraphQL type's documentation follows.
+//
+// Autogenerated return type of MergePullRequest
+type mergePullRequestMergePullRequestMergePullRequestPayload struct {
+	// The pull request that was merged.
+	PullRequest mergePullRequestMergePullRequestMergePullRequestPayloadPullRequest `json:"pullRequest"`
+}
+
+// GetPullRequest returns mergePullRequestMergePullRequestMergePullRequestPayload.PullRequest, and is useful for accessing the field via an interface.
+func (v *mergePullRequestMergePullRequestMergePullRequestPayload) GetPullRequest() mergePullRequestMergePullRequestMergePullRequestPayloadPullRequest {
+	return v.PullRequest
+}
+
+// mergePullRequestMergePullRequestMergePullRequestPayloadPullRequest includes the requested fields of the GraphQL type PullRequest.
+// The GraphQL type's documentation follows.
+//
+// A repository pull request.
+type mergePullRequestMergePullRequestMergePullRequestPayloadPullRequest struct {
+	// Whether or not the pull request was merged.
+	Merged bool `json:"merged"`
+	// The date and time that the pull request was merged.
+	MergedAt time.Time `json:"mergedAt"`
+}
+
+// GetMerged returns mergePullRequestMergePullRequestMergePullRequestPayloadPullRequest.Merged, and is useful for accessing the field via an interface.
+func (v *mergePullRequestMergePullRequestMergePullRequestPayloadPullRequest) GetMerged() bool {
+	return v.Merged
+}
+
+// GetMergedAt returns mergePullRequestMergePullRequestMergePullRequestPayloadPullRequest.MergedAt, and is useful for accessing the field via an interface.
+func (v *mergePullRequestMergePullRequestMergePullRequestPayloadPullRequest) GetMergedAt() time.Time {
+	return v.MergedAt
+}
+
+// mergePullRequestResponse is returned by mergePullRequest on success.
+type mergePullRequestResponse struct {
+	// Merge a pull request.
+	MergePullRequest mergePullRequestMergePullRequestMergePullRequestPayload `json:"mergePullRequest"`
+}
+
+// GetMergePullRequest returns mergePullRequestResponse.MergePullRequest, and is useful for accessing the field via an interface.
+func (v *mergePullRequestResponse) GetMergePullRequest() mergePullRequestMergePullRequestMergePullRequestPayload {
+	return v.MergePullRequest
+}
+
 // The query or mutation executed by createIssue.
 const createIssue_Operation = `
 mutation createIssue ($Body: String!, $Title: String!, $RepositoryId: ID!) {
@@ -464,6 +610,7 @@ mutation createPullRequest ($BaseRefName: String!, $Body: String!, $HeadRefName:
 	createPullRequest(input: {baseRefName:$BaseRefName,body:$Body,headRefName:$HeadRefName,repositoryId:$RepositoryId,title:$Title}) {
 		pullRequest {
 			id
+			number
 		}
 	}
 }
@@ -545,6 +692,49 @@ func getLatestDeployments(
 	var err_ error
 
 	var data_ getLatestDeploymentsResponse
+	resp_ := &graphql.Response{Data: &data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return &data_, err_
+}
+
+// The query or mutation executed by getPullRequestStatusCheckRollup.
+const getPullRequestStatusCheckRollup_Operation = `
+query getPullRequestStatusCheckRollup ($owner: String!, $repo: String!, $prNumber: Int!) {
+	repository(owner: $owner, name: $repo) {
+		pullRequest(number: $prNumber) {
+			statusCheckRollup {
+				state
+			}
+		}
+	}
+}
+`
+
+func getPullRequestStatusCheckRollup(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	owner string,
+	repo string,
+	prNumber int,
+) (*getPullRequestStatusCheckRollupResponse, error) {
+	req_ := &graphql.Request{
+		OpName: "getPullRequestStatusCheckRollup",
+		Query:  getPullRequestStatusCheckRollup_Operation,
+		Variables: &__getPullRequestStatusCheckRollupInput{
+			Owner:    owner,
+			Repo:     repo,
+			PrNumber: prNumber,
+		},
+	}
+	var err_ error
+
+	var data_ getPullRequestStatusCheckRollupResponse
 	resp_ := &graphql.Response{Data: &data_}
 
 	err_ = client_.MakeRequest(
@@ -651,6 +841,44 @@ func getViewer(
 	var err_ error
 
 	var data_ getViewerResponse
+	resp_ := &graphql.Response{Data: &data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return &data_, err_
+}
+
+// The query or mutation executed by mergePullRequest.
+const mergePullRequest_Operation = `
+mutation mergePullRequest ($pullRequestId: ID!) {
+	mergePullRequest(input: {pullRequestId:$pullRequestId}) {
+		pullRequest {
+			merged
+			mergedAt
+		}
+	}
+}
+`
+
+func mergePullRequest(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	pullRequestId string,
+) (*mergePullRequestResponse, error) {
+	req_ := &graphql.Request{
+		OpName: "mergePullRequest",
+		Query:  mergePullRequest_Operation,
+		Variables: &__mergePullRequestInput{
+			PullRequestId: pullRequestId,
+		},
+	}
+	var err_ error
+
+	var data_ mergePullRequestResponse
 	resp_ := &graphql.Response{Data: &data_}
 
 	err_ = client_.MakeRequest(

@@ -41,6 +41,16 @@ query getLatestDeployments($owner: String!, $repo: String!) {
   }
 }
 
+query getPullRequestStatusCheckRollup($owner: String!, $repo: String!, $prNumber: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number:$prNumber) {
+      statusCheckRollup {
+        state
+      }
+    }
+  }
+}
+
 
 mutation createIssue($Body: String!, $Title: String!, $RepositoryId: ID!) {
   createIssue(input: {
@@ -51,6 +61,15 @@ mutation createIssue($Body: String!, $Title: String!, $RepositoryId: ID!) {
   {
     issue {
       id
+    }
+  }
+}
+
+mutation mergePullRequest($pullRequestId: ID!) {
+  mergePullRequest(input: {pullRequestId: $pullRequestId}) {
+    pullRequest {
+      merged
+      mergedAt
     }
   }
 }
@@ -70,7 +89,8 @@ mutation createPullRequest(
   })
   {
     pullRequest {
-      id
+      id,
+      number
     }
   }
 }

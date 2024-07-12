@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -15,7 +17,6 @@ import (
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	gitHttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 	"go.uber.org/zap"
 )
@@ -88,7 +89,7 @@ func (ghrc *GitHubRepoContext) GetLastDeployment(ctx context.Context) (*getLates
 // It will create a  branch, make a change, commit the change, and push the
 // branch to the remote. Create a Pull Request and Merge it.
 // Workflows will then run to create a Deployment.
-func (ghrc *GitHubRepoContext) GenerateDeployment(ctx context.Context, logger *zap.Logger) (prId *createPullRequestResponse, err error) {
+func (ghrc *GitHubRepoContext) GeneratePullRequest(ctx context.Context, logger *zap.Logger) (prId *createPullRequestResponse, err error) {
 	// Create a temp directory and clone the repository
 	dir, err := os.MkdirTemp("", "cloned-repo")
 	if err != nil {
@@ -102,7 +103,7 @@ func (ghrc *GitHubRepoContext) GenerateDeployment(ctx context.Context, logger *z
 	// Clones the repository into the given dir, just as a normal git clone does
 	repo, err := git.PlainClone(dir, false, &git.CloneOptions{
 		URL: ghrc.remoteRepoUrl,
-		Auth: &gitHttp.BasicAuth{
+		Auth: &githttp.BasicAuth{
 			Username: "dora-the-explorer",
 			Password: ghrc.pat,
 		},
@@ -143,6 +144,45 @@ func (ghrc *GitHubRepoContext) GenerateDeployment(ctx context.Context, logger *z
 
 func (ghrc *GitHubRepoContext) UpdateBaseBranch() {
 
+}
+
+// This function will wait for up to 10 min for the status checks to complete
+func (ghrc *GitHubRepoContext) WaitForStatusChecks(ctx context.Context, prNumber int) error {
+	timeout := time.After(10 * time.Minute)
+	tick := time.Tick(10 * time.Second)
+
+	for {
+		select {
+		case <-timeout:
+			return errors.New("Timed out after 10 minutes waiting for status checks")
+		case <-tick:
+			pr, err := getPullRequestStatusCheckRollup(ctx,
+				ghrc.client,
+				ghrc.org,
+				ghrc.name,
+				prNumber)
+
+			if err != nil {
+				return err
+			}
+
+			switch pr.Repository.PullRequest.StatusCheckRollup.State {
+			case "SUCCESS":
+				return nil
+			case "FAILURE":
+				return fmt.Errorf("PR %d failed status checks", prNumber)
+			case "PENDING":
+				continue
+			case "ERROR":
+				return fmt.Errorf("PR %d errored status checks", prNumber)
+			case "EXPECTED":
+				continue
+			default:
+				return fmt.Errorf("Unknown status check state: %s", pr.Repository.PullRequest.StatusCheckRollup.State)
+			}
+
+		}
+	}
 }
 
 func NeedsDowngrade(dir string) (bool, error) {

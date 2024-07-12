@@ -153,7 +153,6 @@ func main() {
 	// Determine how often we need to generate events based on the DORA team
 	// performance level.
 
-	// infinite loop
 	for {
 		minutesToNextDeploy, err := doraTeam.MinutesUntilNextDeployment(ctx, ghrc)
 		if err != nil {
@@ -164,13 +163,32 @@ func main() {
 			// Generate a deployment
 			logger.Sugar().Infof("Minutes until next deployment: %d", minutesToNextDeploy)
 			t := time.NewTicker(time.Duration(minutesToNextDeploy) * time.Minute)
-			<-t.C
+			<-t.C // wait for the next deployment time
+
 			logger.Sugar().Info("Creating deployment")
-			pullRequest, err := ghrc.GenerateDeployment(ctx, logger)
+			pullRequest, err := ghrc.GeneratePullRequest(ctx, logger)
 			if err != nil {
 				logger.Sugar().Errorf("Error generating deployment: %s", err)
 				return
 			}
+
+			// Wait for status checks to complete
+			prNumber := pullRequest.CreatePullRequest.PullRequest.Number
+			err = ghrc.WaitForStatusChecks(ctx, prNumber)
+			if err != nil {
+				logger.Sugar().Errorf("Error waiting for status checks: %s", err)
+				return
+			}
+
+			// Merge the PR
+			mergeResponse, err := mergePullRequest(ctx, ghrc.client, pullRequest.CreatePullRequest.PullRequest.Id)
+			if err != nil {
+				logger.Sugar().Errorf("Error merging PR: %s", err)
+				return
+			}
+
+			logger.Sugar().Infof("Merged PR: %s", mergeResponse.MergePullRequest.PullRequest.Merged)
+
 			logger.Sugar().Infof("Created PR: %s", pullRequest)
 		} else {
 			logger.Sugar().Info("Skipping deployment")
