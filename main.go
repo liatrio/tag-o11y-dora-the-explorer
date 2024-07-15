@@ -51,6 +51,7 @@ func init() {
 
 func prepEnvironment() (ghrc *GitHubRepoContext, doraTeam *DoraTeam, err error) {
 	ghrc = &GitHubRepoContext{}
+	ghrc.logger = logger
 	doraTeam = &DoraTeam{}
 	doraTeamPerformanceLevel := strings.ToLower(os.Getenv("DORA_TEAM_PERFORMANCE_LEVEL"))
 	if doraTeamPerformanceLevel == "" {
@@ -116,53 +117,16 @@ func main() {
 
 	logger.Sugar().Infof("Dora team performance level: %s", doraTeam.Level)
 
-	// Create a temp directory and clone the repository
-	// dir, err := os.MkdirTemp("", "cloned-repo")
-	// if err != nil {
-	// 	logger.Sugar().Errorf("Error creating temp dir: %s", err)
-	// 	return
-	// }
-	// logger.Sugar().Infof("Temp dir is: %v", dir)
-	// ghrc.localDir = dir
-
-	// defer os.RemoveAll(dir) // clean up
-
-	// // Clones the repository into the given dir, just as a normal git clone does
-	// repo, err := git.PlainClone(dir, false, &git.CloneOptions{
-	// 	URL: ghrc.remoteRepoUrl,
-	// 	Auth: &gitHttp.BasicAuth{
-	// 		Username: "dora-the-explorer",
-	// 		Password: ghrc.pat,
-	// 	},
-	// })
-
-	// if err != nil {
-	// 	logger.Sugar().Errorf("Error cloning repository: %s", err)
-	// 	return
-	// }
-	// ghrc.repo = repo
-
-	// head, err := repo.Head()
-	// if err != nil {
-	// 	logger.Sugar().Errorf("Error getting HEAD: %s", err)
-	// 	return
-	// }
-
-	// ghrc.baseRefName = head.Name().Short()
-
-	// Determine how often we need to generate events based on the DORA team
-	// performance level.
-
 	for {
-		minutesToNextDeploy, err := doraTeam.MinutesUntilNextDeployment(ctx, ghrc)
+		minutesUntilNextDeploy, err := doraTeam.MinutesUntilNextDeployment(ctx, ghrc)
 		if err != nil {
 			logger.Sugar().Errorf("Error calculating minutes until next deployment: %s", err)
 			return
 		}
-		if minutesToNextDeploy != -1 {
+		if minutesUntilNextDeploy != -1 {
 			// Generate a deployment
-			logger.Sugar().Infof("Minutes until next deployment: %d", minutesToNextDeploy)
-			t := time.NewTicker(time.Duration(minutesToNextDeploy) * time.Minute)
+			logger.Sugar().Infof("Minutes until next deployment: %d", minutesUntilNextDeploy)
+			t := time.NewTicker(time.Duration(minutesUntilNextDeploy) * time.Minute)
 			<-t.C // wait for the next deployment time
 
 			logger.Sugar().Info("Creating deployment")
@@ -179,6 +143,7 @@ func main() {
 				logger.Sugar().Errorf("Error waiting for status checks: %s", err)
 				return
 			}
+			logger.Sugar().Info("Status checks complete")
 
 			// Merge the PR
 			mergeResponse, err := mergePullRequest(ctx, ghrc.client, pullRequest.CreatePullRequest.PullRequest.Id)
@@ -186,14 +151,19 @@ func main() {
 				logger.Sugar().Errorf("Error merging PR: %s", err)
 				return
 			}
+			logger.Sugar().Infof("Merged Response merge sha: %s", mergeResponse.MergePullRequest.PullRequest.MergeCommit.Oid)
 
-			logger.Sugar().Infof("Merged PR: %s", mergeResponse.MergePullRequest.PullRequest.Merged)
-
-			logger.Sugar().Infof("Created PR: %s", pullRequest)
+			// Wait for deployment to complete
+			err = ghrc.WaitForDeployment(ctx, mergeResponse.MergePullRequest.PullRequest.MergeCommit.Oid)
+			if err != nil {
+				logger.Sugar().Errorf("Error waiting for deployment: %s", err)
+				return
+			}
+			logger.Sugar().Info("Deployment complete")
 		} else {
-			logger.Sugar().Info("Skipping deployment")
+			logger.Sugar().Infof("Last deploy was before %d minutes... skipping", doraTeam.MinutesBetweenDeployRange.LowerBound)
+			time.Sleep(5 * time.Second)
 		}
-		return
 	}
 
 	// needsDowngrade, err := NeedsDowngrade(dir)

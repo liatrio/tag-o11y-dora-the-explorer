@@ -26,6 +26,9 @@ func NewEliteDoraTeam() *DoraTeam {
 	return &DoraTeam{
 		Level: "Elite",
 		MinutesBetweenDeployRange: Range{ // Between 1 and 12 hours
+			// Testing bounds
+			// LowerBound: 1,
+			// UpperBound: 2,
 			LowerBound: 60,
 			UpperBound: 720,
 		},
@@ -40,9 +43,9 @@ func NewEliteDoraTeam() *DoraTeam {
 func NewHighDoraTeam() *DoraTeam {
 	return &DoraTeam{
 		Level: "High",
-		MinutesBetweenDeployRange: Range{ // Between 1440 and 10080 minutes
-			LowerBound: 1440,
-			UpperBound: 10080,
+		MinutesBetweenDeployRange: Range{
+			LowerBound: 1440,  // 24 hours
+			UpperBound: 10080, // 7 days
 		},
 	}
 }
@@ -55,9 +58,9 @@ func NewHighDoraTeam() *DoraTeam {
 func NewMediumDoraTeam() *DoraTeam {
 	return &DoraTeam{
 		Level: "Medium",
-		MinutesBetweenDeployRange: Range{ // Between 10080 and 40320 minutes
-			LowerBound: 10080,
-			UpperBound: 40320,
+		MinutesBetweenDeployRange: Range{
+			LowerBound: 10080, // 1 week
+			UpperBound: 40320, // 4 weeks
 		},
 	}
 }
@@ -70,9 +73,9 @@ func NewMediumDoraTeam() *DoraTeam {
 func NewLowDoraTeam() *DoraTeam {
 	return &DoraTeam{
 		Level: "Low",
-		MinutesBetweenDeployRange: Range{ // Between 40320 and 201600 minutes
-			LowerBound: 40320,
-			UpperBound: 201600,
+		MinutesBetweenDeployRange: Range{
+			LowerBound: 40320,  // 4 weeks
+			UpperBound: 201600, // 24 weeks
 		},
 	}
 }
@@ -98,22 +101,29 @@ func (d *DoraTeam) MinutesUntilNextDeployment(ctx context.Context, ghrc *GitHubR
 	// If the last deployment was less than the lower bound of the DORA team's
 	// deployment frequency, then we don't need to generate a deployment.
 	if time.Since(lastDeploy) < time.Duration(d.MinutesBetweenDeployRange.LowerBound)*time.Minute {
-		logger.Sugar().Infof("Last deploy was before %d minutes... skipping", d.MinutesBetweenDeployRange.LowerBound)
 		return -1, nil
 	}
 
 	// If the last deployment was more than the upper bound of the DORA team's
 	// deployment frequency, then we need to generate a deployment now.
-	var minutesBetweenDeploys int
+	var minutesUntilNextDeploy int
 	if time.Since(lastDeploy) > time.Duration(d.MinutesBetweenDeployRange.UpperBound)*time.Minute {
-		minutesBetweenDeploys = 1 // time.Ticker will panic if 0
+		minutesUntilNextDeploy = 1 // time.Ticker will panic if 0
 	} else {
-		// Generate a random number between the lower and upper bounds
-		// of the DORA team's deployment frequency
-		minutesBetweenDeploys = rand.Intn(
-			d.MinutesBetweenDeployRange.UpperBound-d.MinutesBetweenDeployRange.LowerBound) +
-			d.MinutesBetweenDeployRange.LowerBound
+		// Generate a random number that is at most upper bound deploy range from the last deployment
+		maxThresholdTime := lastDeploy.Add(time.Duration(d.MinutesBetweenDeployRange.UpperBound) * time.Minute)
+
+		rangeOfMinutesUntilNextDeploy := int(time.Until(maxThresholdTime).Minutes())
+		if rangeOfMinutesUntilNextDeploy <= 0 { // This case should not be possible but rand.Intn panics if 0
+			rangeOfMinutesUntilNextDeploy = 1
+		}
+
+		minutesUntilNextDeploy = rand.Intn(rangeOfMinutesUntilNextDeploy)
+
+		if minutesUntilNextDeploy == 0 {
+			minutesUntilNextDeploy = 1
+		}
 	}
 
-	return minutesBetweenDeploys, nil
+	return minutesUntilNextDeploy, nil
 }

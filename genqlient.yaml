@@ -10,3 +10,7 @@ generated: generated.go
 bindings:
   DateTime:
     type: time.Time
+  GitObjectID:
+    type: string
+  URI:
+    type: string

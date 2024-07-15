@@ -51,6 +51,28 @@ query getPullRequestStatusCheckRollup($owner: String!, $repo: String!, $prNumber
   }
 }
 
+query getCommitGitHubActionsRuns($owner: String!, $repo: String!, $commitSha: GitObjectID!) {
+  repository(owner: $owner, name: $repo) {
+    object(oid: $commitSha) {
+      ... on Commit {
+        statusCheckRollup {
+          contexts (last:10) {
+            nodes {
+              ... on CheckRun {
+                name
+                conclusion
+                status
+                detailsUrl
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
 
 mutation createIssue($Body: String!, $Title: String!, $RepositoryId: ID!) {
   createIssue(input: {
@@ -66,10 +88,13 @@ mutation createIssue($Body: String!, $Title: String!, $RepositoryId: ID!) {
 }
 
 mutation mergePullRequest($pullRequestId: ID!) {
-  mergePullRequest(input: {pullRequestId: $pullRequestId}) {
+  mergePullRequest(input: {pullRequestId: $pullRequestId, mergeMethod: SQUASH}) {
     pullRequest {
       merged
       mergedAt
+      mergeCommit {
+        oid
+      }
     }
   }
 }
