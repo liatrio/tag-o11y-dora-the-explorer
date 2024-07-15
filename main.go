@@ -165,47 +165,4 @@ func main() {
 			time.Sleep(5 * time.Second)
 		}
 	}
-
-	// needsDowngrade, err := NeedsDowngrade(dir)
-	if err != nil {
-		logger.Sugar().Errorf("Error checking for downgrade: %s", err)
-		return
-	}
-
-	// if !needsDowngrade {
-	// 	logger.Sugar().Info("No downgrade needed")
-	// 	return
-	// }
-
-	// branchName, err := GenerateDowngradeRemoteBranch(ghrc, logger)
-	if err != nil {
-		logger.Sugar().Errorf("Error generating downgrade branch: %s", err)
-		return
-	}
-
-	// repoIdResp, err := getRepoId(ctx, ghrc.client, ghrc.org, ghrc.name)
-	// if err != nil {
-	// 	logger.Sugar().Errorf("Error getting repo ID: %s", err)
-	// 	return
-	// }
-
-	// prId, err := createPullRequest(ctx,
-	// 	ghrc.client,
-	// 	ghrc.baseRefName,
-	// 	"This is the body of the PR",
-	// 	branchName,
-	// 	repoIdResp.Repository.Id,
-	// 	"Title of the PR")
-
-	// Merge PR
-
-	if err != nil {
-		logger.Sugar().Errorf("Error creating PR: %s", err)
-		return
-	}
-
-	// logger.Sugar().Infof("Repo ID: %s", repoIdResp)
-	// logger.Sugar().Infof("Created PR: %s", prId)
-
-	// logger.Sugar().Infof("Pushed to remote branch: %s", branchName)
 }
