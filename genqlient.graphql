@@ -41,6 +41,39 @@ query getLatestDeployments($owner: String!, $repo: String!) {
   }
 }
 
+query getPullRequestStatusCheckRollup($owner: String!, $repo: String!, $prNumber: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number:$prNumber) {
+      statusCheckRollup {
+        state
+      }
+    }
+  }
+}
+
+query getCommitGitHubActionsRuns($owner: String!, $repo: String!, $commitSha: GitObjectID!) {
+  repository(owner: $owner, name: $repo) {
+    object(oid: $commitSha) {
+      ... on Commit {
+        statusCheckRollup {
+          contexts (last:10) {
+            # @genqlient(typename: "GitHubAction")
+            nodes {
+              ... on CheckRun {
+                name
+                conclusion
+                status
+                detailsUrl
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
 
 mutation createIssue($Body: String!, $Title: String!, $RepositoryId: ID!) {
   createIssue(input: {
@@ -51,6 +84,18 @@ mutation createIssue($Body: String!, $Title: String!, $RepositoryId: ID!) {
   {
     issue {
       id
+    }
+  }
+}
+
+mutation mergePullRequest($pullRequestId: ID!) {
+  mergePullRequest(input: {pullRequestId: $pullRequestId, mergeMethod: SQUASH}) {
+    pullRequest {
+      merged
+      mergedAt
+      mergeCommit {
+        oid
+      }
     }
   }
 }
@@ -70,7 +115,8 @@ mutation createPullRequest(
   })
   {
     pullRequest {
-      id
+      id,
+      number
     }
   }
 }

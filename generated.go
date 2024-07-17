@@ -4,9 +4,53 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/Khan/genqlient/graphql"
+)
+
+// The possible states for a check suite or run conclusion.
+type CheckConclusionState string
+
+const (
+	// The check suite or run requires action.
+	CheckConclusionStateActionRequired CheckConclusionState = "ACTION_REQUIRED"
+	// The check suite or run has been cancelled.
+	CheckConclusionStateCancelled CheckConclusionState = "CANCELLED"
+	// The check suite or run has failed.
+	CheckConclusionStateFailure CheckConclusionState = "FAILURE"
+	// The check suite or run was neutral.
+	CheckConclusionStateNeutral CheckConclusionState = "NEUTRAL"
+	// The check suite or run was skipped.
+	CheckConclusionStateSkipped CheckConclusionState = "SKIPPED"
+	// The check suite or run was marked stale by GitHub. Only GitHub can use this conclusion.
+	CheckConclusionStateStale CheckConclusionState = "STALE"
+	// The check suite or run has failed at startup.
+	CheckConclusionStateStartupFailure CheckConclusionState = "STARTUP_FAILURE"
+	// The check suite or run has succeeded.
+	CheckConclusionStateSuccess CheckConclusionState = "SUCCESS"
+	// The check suite or run has timed out.
+	CheckConclusionStateTimedOut CheckConclusionState = "TIMED_OUT"
+)
+
+// The possible states for a check suite or run status.
+type CheckStatusState string
+
+const (
+	// The check suite or run has been completed.
+	CheckStatusStateCompleted CheckStatusState = "COMPLETED"
+	// The check suite or run is in progress.
+	CheckStatusStateInProgress CheckStatusState = "IN_PROGRESS"
+	// The check suite or run is in pending state.
+	CheckStatusStatePending CheckStatusState = "PENDING"
+	// The check suite or run has been queued.
+	CheckStatusStateQueued CheckStatusState = "QUEUED"
+	// The check suite or run has been requested.
+	CheckStatusStateRequested CheckStatusState = "REQUESTED"
+	// The check suite or run is in waiting state.
+	CheckStatusStateWaiting CheckStatusState = "WAITING"
 )
 
 // The possible states in which a deployment can be.
@@ -59,6 +103,138 @@ const (
 	DeploymentStatusStateWaiting DeploymentStatusState = "WAITING"
 )
 
+// GitHubAction includes the requested fields of the GraphQL interface StatusCheckRollupContext.
+//
+// GitHubAction is implemented by the following types:
+// GitHubActionCheckRun
+// GitHubActionStatusContext
+// The GraphQL type's documentation follows.
+//
+// Types that can be inside a StatusCheckRollup context.
+type GitHubAction interface {
+	implementsGraphQLInterfaceGitHubAction()
+	// GetTypename returns the receiver's concrete GraphQL type-name (see interface doc for possible values).
+	GetTypename() string
+}
+
+func (v *GitHubActionCheckRun) implementsGraphQLInterfaceGitHubAction()      {}
+func (v *GitHubActionStatusContext) implementsGraphQLInterfaceGitHubAction() {}
+
+func __unmarshalGitHubAction(b []byte, v *GitHubAction) error {
+	if string(b) == "null" {
+		return nil
+	}
+
+	var tn struct {
+		TypeName string `json:"__typename"`
+	}
+	err := json.Unmarshal(b, &tn)
+	if err != nil {
+		return err
+	}
+
+	switch tn.TypeName {
+	case "CheckRun":
+		*v = new(GitHubActionCheckRun)
+		return json.Unmarshal(b, *v)
+	case "StatusContext":
+		*v = new(GitHubActionStatusContext)
+		return json.Unmarshal(b, *v)
+	case "":
+		return fmt.Errorf(
+			"response was missing StatusCheckRollupContext.__typename")
+	default:
+		return fmt.Errorf(
+			`unexpected concrete type for GitHubAction: "%v"`, tn.TypeName)
+	}
+}
+
+func __marshalGitHubAction(v *GitHubAction) ([]byte, error) {
+
+	var typename string
+	switch v := (*v).(type) {
+	case *GitHubActionCheckRun:
+		typename = "CheckRun"
+
+		result := struct {
+			TypeName string `json:"__typename"`
+			*GitHubActionCheckRun
+		}{typename, v}
+		return json.Marshal(result)
+	case *GitHubActionStatusContext:
+		typename = "StatusContext"
+
+		result := struct {
+			TypeName string `json:"__typename"`
+			*GitHubActionStatusContext
+		}{typename, v}
+		return json.Marshal(result)
+	case nil:
+		return []byte("null"), nil
+	default:
+		return nil, fmt.Errorf(
+			`unexpected concrete type for GitHubAction: "%T"`, v)
+	}
+}
+
+// GitHubActionCheckRun includes the requested fields of the GraphQL type CheckRun.
+// The GraphQL type's documentation follows.
+//
+// A check run.
+type GitHubActionCheckRun struct {
+	Typename string `json:"__typename"`
+	// The name of the check for this check run.
+	Name string `json:"name"`
+	// The conclusion of the check run.
+	Conclusion CheckConclusionState `json:"conclusion"`
+	// The current status of the check run.
+	Status CheckStatusState `json:"status"`
+	// The URL from which to find full details of the check run on the integrator's site.
+	DetailsUrl string `json:"detailsUrl"`
+}
+
+// GetTypename returns GitHubActionCheckRun.Typename, and is useful for accessing the field via an interface.
+func (v *GitHubActionCheckRun) GetTypename() string { return v.Typename }
+
+// GetName returns GitHubActionCheckRun.Name, and is useful for accessing the field via an interface.
+func (v *GitHubActionCheckRun) GetName() string { return v.Name }
+
+// GetConclusion returns GitHubActionCheckRun.Conclusion, and is useful for accessing the field via an interface.
+func (v *GitHubActionCheckRun) GetConclusion() CheckConclusionState { return v.Conclusion }
+
+// GetStatus returns GitHubActionCheckRun.Status, and is useful for accessing the field via an interface.
+func (v *GitHubActionCheckRun) GetStatus() CheckStatusState { return v.Status }
+
+// GetDetailsUrl returns GitHubActionCheckRun.DetailsUrl, and is useful for accessing the field via an interface.
+func (v *GitHubActionCheckRun) GetDetailsUrl() string { return v.DetailsUrl }
+
+// GitHubActionStatusContext includes the requested fields of the GraphQL type StatusContext.
+// The GraphQL type's documentation follows.
+//
+// Represents an individual commit status context
+type GitHubActionStatusContext struct {
+	Typename string `json:"__typename"`
+}
+
+// GetTypename returns GitHubActionStatusContext.Typename, and is useful for accessing the field via an interface.
+func (v *GitHubActionStatusContext) GetTypename() string { return v.Typename }
+
+// The possible commit status states.
+type StatusState string
+
+const (
+	// Status is errored.
+	StatusStateError StatusState = "ERROR"
+	// Status is expected.
+	StatusStateExpected StatusState = "EXPECTED"
+	// Status is failing.
+	StatusStateFailure StatusState = "FAILURE"
+	// Status is pending.
+	StatusStatePending StatusState = "PENDING"
+	// Status is successful.
+	StatusStateSuccess StatusState = "SUCCESS"
+)
+
 // __createIssueInput is used internally by genqlient
 type __createIssueInput struct {
 	Body         string `json:"Body"`
@@ -99,6 +275,22 @@ func (v *__createPullRequestInput) GetRepositoryId() string { return v.Repositor
 // GetTitle returns __createPullRequestInput.Title, and is useful for accessing the field via an interface.
 func (v *__createPullRequestInput) GetTitle() string { return v.Title }
 
+// __getCommitGitHubActionsRunsInput is used internally by genqlient
+type __getCommitGitHubActionsRunsInput struct {
+	Owner     string `json:"owner"`
+	Repo      string `json:"repo"`
+	CommitSha string `json:"commitSha"`
+}
+
+// GetOwner returns __getCommitGitHubActionsRunsInput.Owner, and is useful for accessing the field via an interface.
+func (v *__getCommitGitHubActionsRunsInput) GetOwner() string { return v.Owner }
+
+// GetRepo returns __getCommitGitHubActionsRunsInput.Repo, and is useful for accessing the field via an interface.
+func (v *__getCommitGitHubActionsRunsInput) GetRepo() string { return v.Repo }
+
+// GetCommitSha returns __getCommitGitHubActionsRunsInput.CommitSha, and is useful for accessing the field via an interface.
+func (v *__getCommitGitHubActionsRunsInput) GetCommitSha() string { return v.CommitSha }
+
 // __getLatestDeploymentsInput is used internally by genqlient
 type __getLatestDeploymentsInput struct {
 	Owner string `json:"owner"`
@@ -110,6 +302,22 @@ func (v *__getLatestDeploymentsInput) GetOwner() string { return v.Owner }
 
 // GetRepo returns __getLatestDeploymentsInput.Repo, and is useful for accessing the field via an interface.
 func (v *__getLatestDeploymentsInput) GetRepo() string { return v.Repo }
+
+// __getPullRequestStatusCheckRollupInput is used internally by genqlient
+type __getPullRequestStatusCheckRollupInput struct {
+	Owner    string `json:"owner"`
+	Repo     string `json:"repo"`
+	PrNumber int    `json:"prNumber"`
+}
+
+// GetOwner returns __getPullRequestStatusCheckRollupInput.Owner, and is useful for accessing the field via an interface.
+func (v *__getPullRequestStatusCheckRollupInput) GetOwner() string { return v.Owner }
+
+// GetRepo returns __getPullRequestStatusCheckRollupInput.Repo, and is useful for accessing the field via an interface.
+func (v *__getPullRequestStatusCheckRollupInput) GetRepo() string { return v.Repo }
+
+// GetPrNumber returns __getPullRequestStatusCheckRollupInput.PrNumber, and is useful for accessing the field via an interface.
+func (v *__getPullRequestStatusCheckRollupInput) GetPrNumber() int { return v.PrNumber }
 
 // __getRepoIdInput is used internally by genqlient
 type __getRepoIdInput struct {
@@ -130,6 +338,14 @@ type __getUserInput struct {
 
 // GetLogin returns __getUserInput.Login, and is useful for accessing the field via an interface.
 func (v *__getUserInput) GetLogin() string { return v.Login }
+
+// __mergePullRequestInput is used internally by genqlient
+type __mergePullRequestInput struct {
+	PullRequestId string `json:"pullRequestId"`
+}
+
+// GetPullRequestId returns __mergePullRequestInput.PullRequestId, and is useful for accessing the field via an interface.
+func (v *__mergePullRequestInput) GetPullRequestId() string { return v.PullRequestId }
 
 // createIssueCreateIssueCreateIssuePayload includes the requested fields of the GraphQL type CreateIssuePayload.
 // The GraphQL type's documentation follows.
@@ -189,11 +405,18 @@ func (v *createPullRequestCreatePullRequestCreatePullRequestPayload) GetPullRequ
 type createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest struct {
 	// The Node ID of the PullRequest object
 	Id string `json:"id"`
+	// Identifies the pull request number.
+	Number int `json:"number"`
 }
 
 // GetId returns createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest.Id, and is useful for accessing the field via an interface.
 func (v *createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest) GetId() string {
 	return v.Id
+}
+
+// GetNumber returns createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest.Number, and is useful for accessing the field via an interface.
+func (v *createPullRequestCreatePullRequestCreatePullRequestPayloadPullRequest) GetNumber() int {
+	return v.Number
 }
 
 // createPullRequestResponse is returned by createPullRequest on success.
@@ -205,6 +428,352 @@ type createPullRequestResponse struct {
 // GetCreatePullRequest returns createPullRequestResponse.CreatePullRequest, and is useful for accessing the field via an interface.
 func (v *createPullRequestResponse) GetCreatePullRequest() createPullRequestCreatePullRequestCreatePullRequestPayload {
 	return v.CreatePullRequest
+}
+
+// getCommitGitHubActionsRunsRepository includes the requested fields of the GraphQL type Repository.
+// The GraphQL type's documentation follows.
+//
+// A repository contains the content for a project.
+type getCommitGitHubActionsRunsRepository struct {
+	// A Git object in the repository
+	Object getCommitGitHubActionsRunsRepositoryObjectGitObject `json:"-"`
+}
+
+// GetObject returns getCommitGitHubActionsRunsRepository.Object, and is useful for accessing the field via an interface.
+func (v *getCommitGitHubActionsRunsRepository) GetObject() getCommitGitHubActionsRunsRepositoryObjectGitObject {
+	return v.Object
+}
+
+func (v *getCommitGitHubActionsRunsRepository) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*getCommitGitHubActionsRunsRepository
+		Object json.RawMessage `json:"object"`
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.getCommitGitHubActionsRunsRepository = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	{
+		dst := &v.Object
+		src := firstPass.Object
+		if len(src) != 0 && string(src) != "null" {
+			err = __unmarshalgetCommitGitHubActionsRunsRepositoryObjectGitObject(
+				src, dst)
+			if err != nil {
+				return fmt.Errorf(
+					"unable to unmarshal getCommitGitHubActionsRunsRepository.Object: %w", err)
+			}
+		}
+	}
+	return nil
+}
+
+type __premarshalgetCommitGitHubActionsRunsRepository struct {
+	Object json.RawMessage `json:"object"`
+}
+
+func (v *getCommitGitHubActionsRunsRepository) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *getCommitGitHubActionsRunsRepository) __premarshalJSON() (*__premarshalgetCommitGitHubActionsRunsRepository, error) {
+	var retval __premarshalgetCommitGitHubActionsRunsRepository
+
+	{
+
+		dst := &retval.Object
+		src := v.Object
+		var err error
+		*dst, err = __marshalgetCommitGitHubActionsRunsRepositoryObjectGitObject(
+			&src)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"unable to marshal getCommitGitHubActionsRunsRepository.Object: %w", err)
+		}
+	}
+	return &retval, nil
+}
+
+// getCommitGitHubActionsRunsRepositoryObjectBlob includes the requested fields of the GraphQL type Blob.
+// The GraphQL type's documentation follows.
+//
+// Represents a Git blob.
+type getCommitGitHubActionsRunsRepositoryObjectBlob struct {
+	Typename string `json:"__typename"`
+}
+
+// GetTypename returns getCommitGitHubActionsRunsRepositoryObjectBlob.Typename, and is useful for accessing the field via an interface.
+func (v *getCommitGitHubActionsRunsRepositoryObjectBlob) GetTypename() string { return v.Typename }
+
+// getCommitGitHubActionsRunsRepositoryObjectCommit includes the requested fields of the GraphQL type Commit.
+// The GraphQL type's documentation follows.
+//
+// Represents a Git commit.
+type getCommitGitHubActionsRunsRepositoryObjectCommit struct {
+	Typename string `json:"__typename"`
+	// Check and Status rollup information for this commit.
+	StatusCheckRollup getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollup `json:"statusCheckRollup"`
+}
+
+// GetTypename returns getCommitGitHubActionsRunsRepositoryObjectCommit.Typename, and is useful for accessing the field via an interface.
+func (v *getCommitGitHubActionsRunsRepositoryObjectCommit) GetTypename() string { return v.Typename }
+
+// GetStatusCheckRollup returns getCommitGitHubActionsRunsRepositoryObjectCommit.StatusCheckRollup, and is useful for accessing the field via an interface.
+func (v *getCommitGitHubActionsRunsRepositoryObjectCommit) GetStatusCheckRollup() getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollup {
+	return v.StatusCheckRollup
+}
+
+// getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollup includes the requested fields of the GraphQL type StatusCheckRollup.
+// The GraphQL type's documentation follows.
+//
+// Represents the rollup for both the check runs and status for a commit.
+type getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollup struct {
+	// A list of status contexts and check runs for this commit.
+	Contexts getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection `json:"contexts"`
+}
+
+// GetContexts returns getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollup.Contexts, and is useful for accessing the field via an interface.
+func (v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollup) GetContexts() getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection {
+	return v.Contexts
+}
+
+// getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection includes the requested fields of the GraphQL type StatusCheckRollupContextConnection.
+// The GraphQL type's documentation follows.
+//
+// The connection type for StatusCheckRollupContext.
+type getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection struct {
+	// A list of nodes.
+	Nodes []GitHubAction `json:"-"`
+}
+
+// GetNodes returns getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection.Nodes, and is useful for accessing the field via an interface.
+func (v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection) GetNodes() []GitHubAction {
+	return v.Nodes
+}
+
+func (v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection
+		Nodes []json.RawMessage `json:"nodes"`
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	{
+		dst := &v.Nodes
+		src := firstPass.Nodes
+		*dst = make(
+			[]GitHubAction,
+			len(src))
+		for i, src := range src {
+			dst := &(*dst)[i]
+			if len(src) != 0 && string(src) != "null" {
+				err = __unmarshalGitHubAction(
+					src, dst)
+				if err != nil {
+					return fmt.Errorf(
+						"unable to unmarshal getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection.Nodes: %w", err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+type __premarshalgetCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection struct {
+	Nodes []json.RawMessage `json:"nodes"`
+}
+
+func (v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection) __premarshalJSON() (*__premarshalgetCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection, error) {
+	var retval __premarshalgetCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection
+
+	{
+
+		dst := &retval.Nodes
+		src := v.Nodes
+		*dst = make(
+			[]json.RawMessage,
+			len(src))
+		for i, src := range src {
+			dst := &(*dst)[i]
+			var err error
+			*dst, err = __marshalGitHubAction(
+				&src)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"unable to marshal getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection.Nodes: %w", err)
+			}
+		}
+	}
+	return &retval, nil
+}
+
+// getCommitGitHubActionsRunsRepositoryObjectGitObject includes the requested fields of the GraphQL interface GitObject.
+//
+// getCommitGitHubActionsRunsRepositoryObjectGitObject is implemented by the following types:
+// getCommitGitHubActionsRunsRepositoryObjectBlob
+// getCommitGitHubActionsRunsRepositoryObjectCommit
+// getCommitGitHubActionsRunsRepositoryObjectTag
+// getCommitGitHubActionsRunsRepositoryObjectTree
+// The GraphQL type's documentation follows.
+//
+// Represents a Git object.
+type getCommitGitHubActionsRunsRepositoryObjectGitObject interface {
+	implementsGraphQLInterfacegetCommitGitHubActionsRunsRepositoryObjectGitObject()
+	// GetTypename returns the receiver's concrete GraphQL type-name (see interface doc for possible values).
+	GetTypename() string
+}
+
+func (v *getCommitGitHubActionsRunsRepositoryObjectBlob) implementsGraphQLInterfacegetCommitGitHubActionsRunsRepositoryObjectGitObject() {
+}
+func (v *getCommitGitHubActionsRunsRepositoryObjectCommit) implementsGraphQLInterfacegetCommitGitHubActionsRunsRepositoryObjectGitObject() {
+}
+func (v *getCommitGitHubActionsRunsRepositoryObjectTag) implementsGraphQLInterfacegetCommitGitHubActionsRunsRepositoryObjectGitObject() {
+}
+func (v *getCommitGitHubActionsRunsRepositoryObjectTree) implementsGraphQLInterfacegetCommitGitHubActionsRunsRepositoryObjectGitObject() {
+}
+
+func __unmarshalgetCommitGitHubActionsRunsRepositoryObjectGitObject(b []byte, v *getCommitGitHubActionsRunsRepositoryObjectGitObject) error {
+	if string(b) == "null" {
+		return nil
+	}
+
+	var tn struct {
+		TypeName string `json:"__typename"`
+	}
+	err := json.Unmarshal(b, &tn)
+	if err != nil {
+		return err
+	}
+
+	switch tn.TypeName {
+	case "Blob":
+		*v = new(getCommitGitHubActionsRunsRepositoryObjectBlob)
+		return json.Unmarshal(b, *v)
+	case "Commit":
+		*v = new(getCommitGitHubActionsRunsRepositoryObjectCommit)
+		return json.Unmarshal(b, *v)
+	case "Tag":
+		*v = new(getCommitGitHubActionsRunsRepositoryObjectTag)
+		return json.Unmarshal(b, *v)
+	case "Tree":
+		*v = new(getCommitGitHubActionsRunsRepositoryObjectTree)
+		return json.Unmarshal(b, *v)
+	case "":
+		return fmt.Errorf(
+			"response was missing GitObject.__typename")
+	default:
+		return fmt.Errorf(
+			`unexpected concrete type for getCommitGitHubActionsRunsRepositoryObjectGitObject: "%v"`, tn.TypeName)
+	}
+}
+
+func __marshalgetCommitGitHubActionsRunsRepositoryObjectGitObject(v *getCommitGitHubActionsRunsRepositoryObjectGitObject) ([]byte, error) {
+
+	var typename string
+	switch v := (*v).(type) {
+	case *getCommitGitHubActionsRunsRepositoryObjectBlob:
+		typename = "Blob"
+
+		result := struct {
+			TypeName string `json:"__typename"`
+			*getCommitGitHubActionsRunsRepositoryObjectBlob
+		}{typename, v}
+		return json.Marshal(result)
+	case *getCommitGitHubActionsRunsRepositoryObjectCommit:
+		typename = "Commit"
+
+		result := struct {
+			TypeName string `json:"__typename"`
+			*getCommitGitHubActionsRunsRepositoryObjectCommit
+		}{typename, v}
+		return json.Marshal(result)
+	case *getCommitGitHubActionsRunsRepositoryObjectTag:
+		typename = "Tag"
+
+		result := struct {
+			TypeName string `json:"__typename"`
+			*getCommitGitHubActionsRunsRepositoryObjectTag
+		}{typename, v}
+		return json.Marshal(result)
+	case *getCommitGitHubActionsRunsRepositoryObjectTree:
+		typename = "Tree"
+
+		result := struct {
+			TypeName string `json:"__typename"`
+			*getCommitGitHubActionsRunsRepositoryObjectTree
+		}{typename, v}
+		return json.Marshal(result)
+	case nil:
+		return []byte("null"), nil
+	default:
+		return nil, fmt.Errorf(
+			`unexpected concrete type for getCommitGitHubActionsRunsRepositoryObjectGitObject: "%T"`, v)
+	}
+}
+
+// getCommitGitHubActionsRunsRepositoryObjectTag includes the requested fields of the GraphQL type Tag.
+// The GraphQL type's documentation follows.
+//
+// Represents a Git tag.
+type getCommitGitHubActionsRunsRepositoryObjectTag struct {
+	Typename string `json:"__typename"`
+}
+
+// GetTypename returns getCommitGitHubActionsRunsRepositoryObjectTag.Typename, and is useful for accessing the field via an interface.
+func (v *getCommitGitHubActionsRunsRepositoryObjectTag) GetTypename() string { return v.Typename }
+
+// getCommitGitHubActionsRunsRepositoryObjectTree includes the requested fields of the GraphQL type Tree.
+// The GraphQL type's documentation follows.
+//
+// Represents a Git tree.
+type getCommitGitHubActionsRunsRepositoryObjectTree struct {
+	Typename string `json:"__typename"`
+}
+
+// GetTypename returns getCommitGitHubActionsRunsRepositoryObjectTree.Typename, and is useful for accessing the field via an interface.
+func (v *getCommitGitHubActionsRunsRepositoryObjectTree) GetTypename() string { return v.Typename }
+
+// getCommitGitHubActionsRunsResponse is returned by getCommitGitHubActionsRuns on success.
+type getCommitGitHubActionsRunsResponse struct {
+	// Lookup a given repository by the owner and repository name.
+	Repository getCommitGitHubActionsRunsRepository `json:"repository"`
+}
+
+// GetRepository returns getCommitGitHubActionsRunsResponse.Repository, and is useful for accessing the field via an interface.
+func (v *getCommitGitHubActionsRunsResponse) GetRepository() getCommitGitHubActionsRunsRepository {
+	return v.Repository
 }
 
 // getLatestDeploymentsRepository includes the requested fields of the GraphQL type Repository.
@@ -344,6 +913,59 @@ func (v *getLatestDeploymentsResponse) GetRepository() getLatestDeploymentsRepos
 	return v.Repository
 }
 
+// getPullRequestStatusCheckRollupRepository includes the requested fields of the GraphQL type Repository.
+// The GraphQL type's documentation follows.
+//
+// A repository contains the content for a project.
+type getPullRequestStatusCheckRollupRepository struct {
+	// Returns a single pull request from the current repository by number.
+	PullRequest getPullRequestStatusCheckRollupRepositoryPullRequest `json:"pullRequest"`
+}
+
+// GetPullRequest returns getPullRequestStatusCheckRollupRepository.PullRequest, and is useful for accessing the field via an interface.
+func (v *getPullRequestStatusCheckRollupRepository) GetPullRequest() getPullRequestStatusCheckRollupRepositoryPullRequest {
+	return v.PullRequest
+}
+
+// getPullRequestStatusCheckRollupRepositoryPullRequest includes the requested fields of the GraphQL type PullRequest.
+// The GraphQL type's documentation follows.
+//
+// A repository pull request.
+type getPullRequestStatusCheckRollupRepositoryPullRequest struct {
+	// Check and Status rollup information for the PR's head ref.
+	StatusCheckRollup getPullRequestStatusCheckRollupRepositoryPullRequestStatusCheckRollup `json:"statusCheckRollup"`
+}
+
+// GetStatusCheckRollup returns getPullRequestStatusCheckRollupRepositoryPullRequest.StatusCheckRollup, and is useful for accessing the field via an interface.
+func (v *getPullRequestStatusCheckRollupRepositoryPullRequest) GetStatusCheckRollup() getPullRequestStatusCheckRollupRepositoryPullRequestStatusCheckRollup {
+	return v.StatusCheckRollup
+}
+
+// getPullRequestStatusCheckRollupRepositoryPullRequestStatusCheckRollup includes the requested fields of the GraphQL type StatusCheckRollup.
+// The GraphQL type's documentation follows.
+//
+// Represents the rollup for both the check runs and status for a commit.
+type getPullRequestStatusCheckRollupRepositoryPullRequestStatusCheckRollup struct {
+	// The combined status for the commit.
+	State StatusState `json:"state"`
+}
+
+// GetState returns getPullRequestStatusCheckRollupRepositoryPullRequestStatusCheckRollup.State, and is useful for accessing the field via an interface.
+func (v *getPullRequestStatusCheckRollupRepositoryPullRequestStatusCheckRollup) GetState() StatusState {
+	return v.State
+}
+
+// getPullRequestStatusCheckRollupResponse is returned by getPullRequestStatusCheckRollup on success.
+type getPullRequestStatusCheckRollupResponse struct {
+	// Lookup a given repository by the owner and repository name.
+	Repository getPullRequestStatusCheckRollupRepository `json:"repository"`
+}
+
+// GetRepository returns getPullRequestStatusCheckRollupResponse.Repository, and is useful for accessing the field via an interface.
+func (v *getPullRequestStatusCheckRollupResponse) GetRepository() getPullRequestStatusCheckRollupRepository {
+	return v.Repository
+}
+
 // getRepoIdRepository includes the requested fields of the GraphQL type Repository.
 // The GraphQL type's documentation follows.
 //
@@ -417,6 +1039,73 @@ func (v *getViewerViewerUser) GetMyName() string { return v.MyName }
 // GetCreatedAt returns getViewerViewerUser.CreatedAt, and is useful for accessing the field via an interface.
 func (v *getViewerViewerUser) GetCreatedAt() time.Time { return v.CreatedAt }
 
+// mergePullRequestMergePullRequestMergePullRequestPayload includes the requested fields of the GraphQL type MergePullRequestPayload.
+// The GraphQL type's documentation follows.
+//
+// Autogenerated return type of MergePullRequest
+type mergePullRequestMergePullRequestMergePullRequestPayload struct {
+	// The pull request that was merged.
+	PullRequest mergePullRequestMergePullRequestMergePullRequestPayloadPullRequest `json:"pullRequest"`
+}
+
+// GetPullRequest returns mergePullRequestMergePullRequestMergePullRequestPayload.PullRequest, and is useful for accessing the field via an interface.
+func (v *mergePullRequestMergePullRequestMergePullRequestPayload) GetPullRequest() mergePullRequestMergePullRequestMergePullRequestPayloadPullRequest {
+	return v.PullRequest
+}
+
+// mergePullRequestMergePullRequestMergePullRequestPayloadPullRequest includes the requested fields of the GraphQL type PullRequest.
+// The GraphQL type's documentation follows.
+//
+// A repository pull request.
+type mergePullRequestMergePullRequestMergePullRequestPayloadPullRequest struct {
+	// Whether or not the pull request was merged.
+	Merged bool `json:"merged"`
+	// The date and time that the pull request was merged.
+	MergedAt time.Time `json:"mergedAt"`
+	// The commit that was created when this pull request was merged.
+	MergeCommit mergePullRequestMergePullRequestMergePullRequestPayloadPullRequestMergeCommit `json:"mergeCommit"`
+}
+
+// GetMerged returns mergePullRequestMergePullRequestMergePullRequestPayloadPullRequest.Merged, and is useful for accessing the field via an interface.
+func (v *mergePullRequestMergePullRequestMergePullRequestPayloadPullRequest) GetMerged() bool {
+	return v.Merged
+}
+
+// GetMergedAt returns mergePullRequestMergePullRequestMergePullRequestPayloadPullRequest.MergedAt, and is useful for accessing the field via an interface.
+func (v *mergePullRequestMergePullRequestMergePullRequestPayloadPullRequest) GetMergedAt() time.Time {
+	return v.MergedAt
+}
+
+// GetMergeCommit returns mergePullRequestMergePullRequestMergePullRequestPayloadPullRequest.MergeCommit, and is useful for accessing the field via an interface.
+func (v *mergePullRequestMergePullRequestMergePullRequestPayloadPullRequest) GetMergeCommit() mergePullRequestMergePullRequestMergePullRequestPayloadPullRequestMergeCommit {
+	return v.MergeCommit
+}
+
+// mergePullRequestMergePullRequestMergePullRequestPayloadPullRequestMergeCommit includes the requested fields of the GraphQL type Commit.
+// The GraphQL type's documentation follows.
+//
+// Represents a Git commit.
+type mergePullRequestMergePullRequestMergePullRequestPayloadPullRequestMergeCommit struct {
+	// The Git object ID
+	Oid string `json:"oid"`
+}
+
+// GetOid returns mergePullRequestMergePullRequestMergePullRequestPayloadPullRequestMergeCommit.Oid, and is useful for accessing the field via an interface.
+func (v *mergePullRequestMergePullRequestMergePullRequestPayloadPullRequestMergeCommit) GetOid() string {
+	return v.Oid
+}
+
+// mergePullRequestResponse is returned by mergePullRequest on success.
+type mergePullRequestResponse struct {
+	// Merge a pull request.
+	MergePullRequest mergePullRequestMergePullRequestMergePullRequestPayload `json:"mergePullRequest"`
+}
+
+// GetMergePullRequest returns mergePullRequestResponse.MergePullRequest, and is useful for accessing the field via an interface.
+func (v *mergePullRequestResponse) GetMergePullRequest() mergePullRequestMergePullRequestMergePullRequestPayload {
+	return v.MergePullRequest
+}
+
 // The query or mutation executed by createIssue.
 const createIssue_Operation = `
 mutation createIssue ($Body: String!, $Title: String!, $RepositoryId: ID!) {
@@ -464,6 +1153,7 @@ mutation createPullRequest ($BaseRefName: String!, $Body: String!, $HeadRefName:
 	createPullRequest(input: {baseRefName:$BaseRefName,body:$Body,headRefName:$HeadRefName,repositoryId:$RepositoryId,title:$Title}) {
 		pullRequest {
 			id
+			number
 		}
 	}
 }
@@ -492,6 +1182,62 @@ func createPullRequest(
 	var err_ error
 
 	var data_ createPullRequestResponse
+	resp_ := &graphql.Response{Data: &data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return &data_, err_
+}
+
+// The query or mutation executed by getCommitGitHubActionsRuns.
+const getCommitGitHubActionsRuns_Operation = `
+query getCommitGitHubActionsRuns ($owner: String!, $repo: String!, $commitSha: GitObjectID!) {
+	repository(owner: $owner, name: $repo) {
+		object(oid: $commitSha) {
+			__typename
+			... on Commit {
+				statusCheckRollup {
+					contexts(last: 10) {
+						nodes {
+							__typename
+							... on CheckRun {
+								name
+								conclusion
+								status
+								detailsUrl
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+`
+
+func getCommitGitHubActionsRuns(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	owner string,
+	repo string,
+	commitSha string,
+) (*getCommitGitHubActionsRunsResponse, error) {
+	req_ := &graphql.Request{
+		OpName: "getCommitGitHubActionsRuns",
+		Query:  getCommitGitHubActionsRuns_Operation,
+		Variables: &__getCommitGitHubActionsRunsInput{
+			Owner:     owner,
+			Repo:      repo,
+			CommitSha: commitSha,
+		},
+	}
+	var err_ error
+
+	var data_ getCommitGitHubActionsRunsResponse
 	resp_ := &graphql.Response{Data: &data_}
 
 	err_ = client_.MakeRequest(
@@ -545,6 +1291,49 @@ func getLatestDeployments(
 	var err_ error
 
 	var data_ getLatestDeploymentsResponse
+	resp_ := &graphql.Response{Data: &data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return &data_, err_
+}
+
+// The query or mutation executed by getPullRequestStatusCheckRollup.
+const getPullRequestStatusCheckRollup_Operation = `
+query getPullRequestStatusCheckRollup ($owner: String!, $repo: String!, $prNumber: Int!) {
+	repository(owner: $owner, name: $repo) {
+		pullRequest(number: $prNumber) {
+			statusCheckRollup {
+				state
+			}
+		}
+	}
+}
+`
+
+func getPullRequestStatusCheckRollup(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	owner string,
+	repo string,
+	prNumber int,
+) (*getPullRequestStatusCheckRollupResponse, error) {
+	req_ := &graphql.Request{
+		OpName: "getPullRequestStatusCheckRollup",
+		Query:  getPullRequestStatusCheckRollup_Operation,
+		Variables: &__getPullRequestStatusCheckRollupInput{
+			Owner:    owner,
+			Repo:     repo,
+			PrNumber: prNumber,
+		},
+	}
+	var err_ error
+
+	var data_ getPullRequestStatusCheckRollupResponse
 	resp_ := &graphql.Response{Data: &data_}
 
 	err_ = client_.MakeRequest(
@@ -651,6 +1440,47 @@ func getViewer(
 	var err_ error
 
 	var data_ getViewerResponse
+	resp_ := &graphql.Response{Data: &data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return &data_, err_
+}
+
+// The query or mutation executed by mergePullRequest.
+const mergePullRequest_Operation = `
+mutation mergePullRequest ($pullRequestId: ID!) {
+	mergePullRequest(input: {pullRequestId:$pullRequestId,mergeMethod:SQUASH}) {
+		pullRequest {
+			merged
+			mergedAt
+			mergeCommit {
+				oid
+			}
+		}
+	}
+}
+`
+
+func mergePullRequest(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	pullRequestId string,
+) (*mergePullRequestResponse, error) {
+	req_ := &graphql.Request{
+		OpName: "mergePullRequest",
+		Query:  mergePullRequest_Operation,
+		Variables: &__mergePullRequestInput{
+			PullRequestId: pullRequestId,
+		},
+	}
+	var err_ error
+
+	var data_ mergePullRequestResponse
 	resp_ := &graphql.Response{Data: &data_}
 
 	err_ = client_.MakeRequest(
