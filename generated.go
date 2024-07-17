@@ -103,6 +103,122 @@ const (
 	DeploymentStatusStateWaiting DeploymentStatusState = "WAITING"
 )
 
+// GitHubAction includes the requested fields of the GraphQL interface StatusCheckRollupContext.
+//
+// GitHubAction is implemented by the following types:
+// GitHubActionCheckRun
+// GitHubActionStatusContext
+// The GraphQL type's documentation follows.
+//
+// Types that can be inside a StatusCheckRollup context.
+type GitHubAction interface {
+	implementsGraphQLInterfaceGitHubAction()
+	// GetTypename returns the receiver's concrete GraphQL type-name (see interface doc for possible values).
+	GetTypename() string
+}
+
+func (v *GitHubActionCheckRun) implementsGraphQLInterfaceGitHubAction()      {}
+func (v *GitHubActionStatusContext) implementsGraphQLInterfaceGitHubAction() {}
+
+func __unmarshalGitHubAction(b []byte, v *GitHubAction) error {
+	if string(b) == "null" {
+		return nil
+	}
+
+	var tn struct {
+		TypeName string `json:"__typename"`
+	}
+	err := json.Unmarshal(b, &tn)
+	if err != nil {
+		return err
+	}
+
+	switch tn.TypeName {
+	case "CheckRun":
+		*v = new(GitHubActionCheckRun)
+		return json.Unmarshal(b, *v)
+	case "StatusContext":
+		*v = new(GitHubActionStatusContext)
+		return json.Unmarshal(b, *v)
+	case "":
+		return fmt.Errorf(
+			"response was missing StatusCheckRollupContext.__typename")
+	default:
+		return fmt.Errorf(
+			`unexpected concrete type for GitHubAction: "%v"`, tn.TypeName)
+	}
+}
+
+func __marshalGitHubAction(v *GitHubAction) ([]byte, error) {
+
+	var typename string
+	switch v := (*v).(type) {
+	case *GitHubActionCheckRun:
+		typename = "CheckRun"
+
+		result := struct {
+			TypeName string `json:"__typename"`
+			*GitHubActionCheckRun
+		}{typename, v}
+		return json.Marshal(result)
+	case *GitHubActionStatusContext:
+		typename = "StatusContext"
+
+		result := struct {
+			TypeName string `json:"__typename"`
+			*GitHubActionStatusContext
+		}{typename, v}
+		return json.Marshal(result)
+	case nil:
+		return []byte("null"), nil
+	default:
+		return nil, fmt.Errorf(
+			`unexpected concrete type for GitHubAction: "%T"`, v)
+	}
+}
+
+// GitHubActionCheckRun includes the requested fields of the GraphQL type CheckRun.
+// The GraphQL type's documentation follows.
+//
+// A check run.
+type GitHubActionCheckRun struct {
+	Typename string `json:"__typename"`
+	// The name of the check for this check run.
+	Name string `json:"name"`
+	// The conclusion of the check run.
+	Conclusion CheckConclusionState `json:"conclusion"`
+	// The current status of the check run.
+	Status CheckStatusState `json:"status"`
+	// The URL from which to find full details of the check run on the integrator's site.
+	DetailsUrl string `json:"detailsUrl"`
+}
+
+// GetTypename returns GitHubActionCheckRun.Typename, and is useful for accessing the field via an interface.
+func (v *GitHubActionCheckRun) GetTypename() string { return v.Typename }
+
+// GetName returns GitHubActionCheckRun.Name, and is useful for accessing the field via an interface.
+func (v *GitHubActionCheckRun) GetName() string { return v.Name }
+
+// GetConclusion returns GitHubActionCheckRun.Conclusion, and is useful for accessing the field via an interface.
+func (v *GitHubActionCheckRun) GetConclusion() CheckConclusionState { return v.Conclusion }
+
+// GetStatus returns GitHubActionCheckRun.Status, and is useful for accessing the field via an interface.
+func (v *GitHubActionCheckRun) GetStatus() CheckStatusState { return v.Status }
+
+// GetDetailsUrl returns GitHubActionCheckRun.DetailsUrl, and is useful for accessing the field via an interface.
+func (v *GitHubActionCheckRun) GetDetailsUrl() string { return v.DetailsUrl }
+
+// GitHubActionStatusContext includes the requested fields of the GraphQL type StatusContext.
+// The GraphQL type's documentation follows.
+//
+// Represents an individual commit status context
+type GitHubActionStatusContext struct {
+	Typename string `json:"__typename"`
+}
+
+// GetTypename returns GitHubActionStatusContext.Typename, and is useful for accessing the field via an interface.
+func (v *GitHubActionStatusContext) GetTypename() string { return v.Typename }
+
 // The possible commit status states.
 type StatusState string
 
@@ -440,11 +556,11 @@ func (v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollup) GetC
 // The connection type for StatusCheckRollupContext.
 type getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection struct {
 	// A list of nodes.
-	Nodes []getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusCheckRollupContext `json:"-"`
+	Nodes []GitHubAction `json:"-"`
 }
 
 // GetNodes returns getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection.Nodes, and is useful for accessing the field via an interface.
-func (v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection) GetNodes() []getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusCheckRollupContext {
+func (v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnection) GetNodes() []GitHubAction {
 	return v.Nodes
 }
 
@@ -470,12 +586,12 @@ func (v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContex
 		dst := &v.Nodes
 		src := firstPass.Nodes
 		*dst = make(
-			[]getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusCheckRollupContext,
+			[]GitHubAction,
 			len(src))
 		for i, src := range src {
 			dst := &(*dst)[i]
 			if len(src) != 0 && string(src) != "null" {
-				err = __unmarshalgetCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusCheckRollupContext(
+				err = __unmarshalGitHubAction(
 					src, dst)
 				if err != nil {
 					return fmt.Errorf(
@@ -512,7 +628,7 @@ func (v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContex
 		for i, src := range src {
 			dst := &(*dst)[i]
 			var err error
-			*dst, err = __marshalgetCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusCheckRollupContext(
+			*dst, err = __marshalGitHubAction(
 				&src)
 			if err != nil {
 				return nil, fmt.Errorf(
@@ -521,136 +637,6 @@ func (v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContex
 		}
 	}
 	return &retval, nil
-}
-
-// getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesCheckRun includes the requested fields of the GraphQL type CheckRun.
-// The GraphQL type's documentation follows.
-//
-// A check run.
-type getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesCheckRun struct {
-	Typename string `json:"__typename"`
-	// The name of the check for this check run.
-	Name string `json:"name"`
-	// The conclusion of the check run.
-	Conclusion CheckConclusionState `json:"conclusion"`
-	// The current status of the check run.
-	Status CheckStatusState `json:"status"`
-	// The URL from which to find full details of the check run on the integrator's site.
-	DetailsUrl string `json:"detailsUrl"`
-}
-
-// GetTypename returns getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesCheckRun.Typename, and is useful for accessing the field via an interface.
-func (v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesCheckRun) GetTypename() string {
-	return v.Typename
-}
-
-// GetName returns getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesCheckRun.Name, and is useful for accessing the field via an interface.
-func (v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesCheckRun) GetName() string {
-	return v.Name
-}
-
-// GetConclusion returns getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesCheckRun.Conclusion, and is useful for accessing the field via an interface.
-func (v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesCheckRun) GetConclusion() CheckConclusionState {
-	return v.Conclusion
-}
-
-// GetStatus returns getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesCheckRun.Status, and is useful for accessing the field via an interface.
-func (v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesCheckRun) GetStatus() CheckStatusState {
-	return v.Status
-}
-
-// GetDetailsUrl returns getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesCheckRun.DetailsUrl, and is useful for accessing the field via an interface.
-func (v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesCheckRun) GetDetailsUrl() string {
-	return v.DetailsUrl
-}
-
-// getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusCheckRollupContext includes the requested fields of the GraphQL interface StatusCheckRollupContext.
-//
-// getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusCheckRollupContext is implemented by the following types:
-// getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesCheckRun
-// getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusContext
-// The GraphQL type's documentation follows.
-//
-// Types that can be inside a StatusCheckRollup context.
-type getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusCheckRollupContext interface {
-	implementsGraphQLInterfacegetCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusCheckRollupContext()
-	// GetTypename returns the receiver's concrete GraphQL type-name (see interface doc for possible values).
-	GetTypename() string
-}
-
-func (v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesCheckRun) implementsGraphQLInterfacegetCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusCheckRollupContext() {
-}
-func (v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusContext) implementsGraphQLInterfacegetCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusCheckRollupContext() {
-}
-
-func __unmarshalgetCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusCheckRollupContext(b []byte, v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusCheckRollupContext) error {
-	if string(b) == "null" {
-		return nil
-	}
-
-	var tn struct {
-		TypeName string `json:"__typename"`
-	}
-	err := json.Unmarshal(b, &tn)
-	if err != nil {
-		return err
-	}
-
-	switch tn.TypeName {
-	case "CheckRun":
-		*v = new(getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesCheckRun)
-		return json.Unmarshal(b, *v)
-	case "StatusContext":
-		*v = new(getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusContext)
-		return json.Unmarshal(b, *v)
-	case "":
-		return fmt.Errorf(
-			"response was missing StatusCheckRollupContext.__typename")
-	default:
-		return fmt.Errorf(
-			`unexpected concrete type for getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusCheckRollupContext: "%v"`, tn.TypeName)
-	}
-}
-
-func __marshalgetCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusCheckRollupContext(v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusCheckRollupContext) ([]byte, error) {
-
-	var typename string
-	switch v := (*v).(type) {
-	case *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesCheckRun:
-		typename = "CheckRun"
-
-		result := struct {
-			TypeName string `json:"__typename"`
-			*getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesCheckRun
-		}{typename, v}
-		return json.Marshal(result)
-	case *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusContext:
-		typename = "StatusContext"
-
-		result := struct {
-			TypeName string `json:"__typename"`
-			*getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusContext
-		}{typename, v}
-		return json.Marshal(result)
-	case nil:
-		return []byte("null"), nil
-	default:
-		return nil, fmt.Errorf(
-			`unexpected concrete type for getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusCheckRollupContext: "%T"`, v)
-	}
-}
-
-// getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusContext includes the requested fields of the GraphQL type StatusContext.
-// The GraphQL type's documentation follows.
-//
-// Represents an individual commit status context
-type getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusContext struct {
-	Typename string `json:"__typename"`
-}
-
-// GetTypename returns getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusContext.Typename, and is useful for accessing the field via an interface.
-func (v *getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesStatusContext) GetTypename() string {
-	return v.Typename
 }
 
 // getCommitGitHubActionsRunsRepositoryObjectGitObject includes the requested fields of the GraphQL interface GitObject.

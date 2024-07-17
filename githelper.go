@@ -102,7 +102,7 @@ func (ghrc *GitHubRepoContext) WaitForDeployment(ctx context.Context, sha string
 
 			if commit, ok := commitGitHubActionRuns.Repository.Object.(*getCommitGitHubActionsRunsRepositoryObjectCommit); ok {
 				for _, node := range commit.StatusCheckRollup.Contexts.Nodes {
-					if cr, ok := node.(*getCommitGitHubActionsRunsRepositoryObjectCommitStatusCheckRollupContextsStatusCheckRollupContextConnectionNodesCheckRun); ok {
+					if cr, ok := node.(*GitHubActionCheckRun); ok {
 						if cr.Name != "deploy" {
 							continue
 						}

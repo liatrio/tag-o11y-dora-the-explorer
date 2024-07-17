@@ -57,6 +57,7 @@ query getCommitGitHubActionsRuns($owner: String!, $repo: String!, $commitSha: Gi
       ... on Commit {
         statusCheckRollup {
           contexts (last:10) {
+            # @genqlient(typename: "GitHubAction")
             nodes {
               ... on CheckRun {
                 name
