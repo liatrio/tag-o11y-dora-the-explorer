@@ -43,7 +43,6 @@ type GitHubRepoContext struct {
 	client        graphql.Client
 	name          string
 	org           string
-	baseRefName   string
 	remoteRepoUrl string
 	logger        *zap.Logger
 	// localDir      string

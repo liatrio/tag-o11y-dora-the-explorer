@@ -118,6 +118,7 @@ func (d *DoraTeam) MinutesUntilNextDeployment(ctx context.Context, ghrc *GitHubR
 			rangeOfMinutesUntilNextDeploy = 1
 		}
 
+		//nolint:gosec // No security issue, just need a psudo-random interval
 		minutesUntilNextDeploy = rand.Intn(rangeOfMinutesUntilNextDeploy)
 
 		if minutesUntilNextDeploy == 0 {

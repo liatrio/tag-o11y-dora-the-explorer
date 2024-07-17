@@ -52,7 +52,6 @@ func init() {
 func prepEnvironment() (ghrc *GitHubRepoContext, doraTeam *DoraTeam, err error) {
 	ghrc = &GitHubRepoContext{}
 	ghrc.logger = logger
-	doraTeam = &DoraTeam{}
 	doraTeamPerformanceLevel := strings.ToLower(os.Getenv("DORA_TEAM_PERFORMANCE_LEVEL"))
 	if doraTeamPerformanceLevel == "" {
 		return nil, nil, errors.New("DORA_TEAM_PERFORMANCE_LEVEL is not set")
