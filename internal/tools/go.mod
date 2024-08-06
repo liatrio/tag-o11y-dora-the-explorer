@@ -2,7 +2,7 @@ module github.com/liatrio/tag-o11y-dora-the-explorer/internal/tools
 
 go 1.22
 
-toolchain go1.22.4
+toolchain go1.22.6
 
 require (
 	github.com/Khan/genqlient v0.7.0
