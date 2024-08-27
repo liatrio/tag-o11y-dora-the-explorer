@@ -1,0 +1,111 @@
+name: Publish TechDocs Site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "**/*.md"
+  workflow_dispatch:
+
+jobs:
+  check-for-catalog-info-at-root:
+    runs-on: ubuntu-latest
+    outputs:
+      catalog-present: ${{ steps.check-catalog.outputs.catalog-exists }}
+      mkdocs-present: ${{ steps.check-mkdocs.outputs.mkdocs-exists }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Check if catalog exists
+      id: check-catalog
+      run: |
+        if [ -f "./catalog-info.yaml" ]; then
+          echo "catalog-exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "catalog-exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Check if mkdocs exists
+      id: check-mkdocs
+      run: |
+        if [ -f "./mkdocs.yml" ] || [ -f "./mkdocs.yaml"]; then
+          echo "mkdocs-exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "mkdocs-exists=false" >> $GITHUB_OUTPUT
+        fi
+
+  publish-docs-to-s3:
+    needs: check-for-catalog-info-at-root
+    if: ${{ needs.check-for-catalog-info-at-root.outputs.catalog-present == 'true' && needs.check-for-catalog-info-at-root.outputs.mkdocs-present == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache Node.js modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            $(npm config get prefix)/lib/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - uses: actions/setup-node@v3
+
+      - name: Cache Python packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/*.txt', '**/*.pip') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install techdocs-cli
+        run: sudo npm install -g @techdocs/cli
+
+      - name: Install mkdocs and mkdocs plugins
+        run: python -m pip install mkdocs-techdocs-core==1.* neoteroi-mkdocs
+
+      - name: Get namespace from catalog-info.yaml
+        id: get_namespace
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq '.metadata.namespace // "default"' catalog-info.yaml
+
+      - name: Get name from catalog-info.yaml
+        id: get_name
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq '.metadata.name' catalog-info.yaml
+
+      - name: Get kind from catalog-info.yaml
+        id: get_kind
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq '.kind' catalog-info.yaml
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-session-name: publish-docs
+          role-to-assume: arn:aws:iam::905418481873:role/Github_OIDC_TechDocs_S3
+
+      - name: Generate docs site
+        run: techdocs-cli generate --no-docker --verbose
+
+      - name: Publish docs site
+        run: techdocs-cli publish --publisher-type awsS3 --storage-name backstage-liatrio-techdocs --entity ${{ steps.get_namespace.outputs.result }}/${{ steps.get_kind.outputs.result }}/${{ steps.get_name.outputs.result }}
+f
