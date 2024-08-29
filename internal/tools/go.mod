@@ -11,7 +11,7 @@ require (
 	github.com/securego/gosec/v2 v2.20.1-0.20240625111827-9a4a741e6b37
 	golang.org/x/tools v0.22.0
 	golang.org/x/vuln v1.1.2
-	honnef.co/go/tools v0.4.7
+	honnef.co/go/tools v0.5.1
 )
 
 require (
