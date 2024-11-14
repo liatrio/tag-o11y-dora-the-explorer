@@ -123,7 +123,7 @@ jobs:
         run: make test
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
 
   go-semantic-release:
     if: ${{ github.ref == 'refs/heads/main' }}
