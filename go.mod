@@ -4,7 +4,7 @@ go 1.22.4
 
 require (
 	github.com/Khan/genqlient v0.7.0
-	github.com/go-git/go-git/v5 v5.12.0
+	github.com/go-git/go-git/v5 v5.13.0
 	go.uber.org/zap v1.27.0
 )
 
