@@ -5,7 +5,7 @@ go 1.22
 toolchain go1.22.4
 
 require (
-	github.com/Khan/genqlient v0.7.0
+	github.com/Khan/genqlient v0.8.1
 	github.com/golangci/golangci-lint v1.59.1
 	github.com/goreleaser/goreleaser/v2 v2.0.1
 	github.com/securego/gosec/v2 v2.20.1-0.20240625111827-9a4a741e6b37
